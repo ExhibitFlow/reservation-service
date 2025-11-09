@@ -6,7 +6,9 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Repository for Reservation entity in microservices architecture
@@ -23,4 +25,8 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     long countByUserIdAndStatus(@Param("userId") Long userId, @Param("status") Reservation.ReservationStatus status);
     
     List<Reservation> findByStallId(Long stallId);
+    
+    Optional<Reservation> findByStallIdAndStatus(Long stallId, Reservation.ReservationStatus status);
+    
+    List<Reservation> findByStatusAndPaymentExpiresAtBefore(Reservation.ReservationStatus status, LocalDateTime expiryTime);
 }

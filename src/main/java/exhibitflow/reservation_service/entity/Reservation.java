@@ -39,12 +39,21 @@ public class Reservation {
     @Column(columnDefinition = "LONGTEXT")
     private String qrCodeBase64;
 
+    @Column(name = "payment_expires_at")
+    private LocalDateTime paymentExpiresAt;
+
+    @Column(name = "payment_completed_at")
+    private LocalDateTime paymentCompletedAt;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default
-    private ReservationStatus status = ReservationStatus.CONFIRMED;
+    private ReservationStatus status = ReservationStatus.PENDING_PAYMENT;
 
     public enum ReservationStatus {
-        CONFIRMED, CANCELLED
+        PENDING_PAYMENT,  // Temporary lock during payment (5 minutes)
+        CONFIRMED,        // Payment completed
+        CANCELLED,        // User cancelled
+        EXPIRED           // Payment timeout
     }
 }

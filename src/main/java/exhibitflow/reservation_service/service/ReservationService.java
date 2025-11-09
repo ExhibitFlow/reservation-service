@@ -8,9 +8,7 @@ import exhibitflow.reservation_service.dto.ReservationResponse;
 import exhibitflow.reservation_service.dto.StallDto;
 import exhibitflow.reservation_service.dto.UserDto;
 import exhibitflow.reservation_service.entity.Reservation;
-import exhibitflow.reservation_service.exception.ReservationLimitExceededException;
-import exhibitflow.reservation_service.exception.ResourceNotFoundException;
-import exhibitflow.reservation_service.exception.StallNotAvailableException;
+import exhibitflow.reservation_service.exception.*;
 import exhibitflow.reservation_service.repository.ReservationRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,18 +16,22 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
  * Reservation Service for microservices architecture
  * Communicates with User, Stall, and QRCode services via REST
+ * Implements 5-minute payment lock mechanism
  */
 @Service
 public class ReservationService {
 
     private static final Logger logger = LoggerFactory.getLogger(ReservationService.class);
     private static final int MAX_RESERVATIONS_PER_USER = 3;
+    private static final int PAYMENT_LOCK_MINUTES = 5;
 
     @Autowired
     private ReservationRepository reservationRepository;
@@ -44,12 +46,13 @@ public class ReservationService {
     private QRCodeServiceClient qrCodeServiceClient;
 
     /**
-     * Creates a new reservation with transactional safety
-     * Communicates with User Service, Stall Service, and QRCode Service
+     * Creates a new reservation with payment lock (5 minutes)
+     * Stall is temporarily locked until payment is completed
+     * Communicates with User Service, Stall Service (QR code generated after payment)
      */
     @Transactional
     public ReservationResponse createReservation(CreateReservationRequest request, Long userId) {
-        logger.info("Creating reservation for user: {} and stall: {}", userId, request.getStallId());
+        logger.info("Creating reservation with payment lock for user: {} and stall: {}", userId, request.getStallId());
 
         // Validate user exists via User Service
         UserDto user = userServiceClient.getUserById(userId);
@@ -57,7 +60,7 @@ public class ReservationService {
             throw new ResourceNotFoundException("User not found with ID: " + userId);
         }
 
-        // Check if user has reached reservation limit
+        // Check if user has reached reservation limit (only count CONFIRMED reservations)
         long userReservationCount = reservationRepository.countByUserIdAndStatus(
             userId, 
             Reservation.ReservationStatus.CONFIRMED
@@ -83,38 +86,49 @@ public class ReservationService {
             );
         }
 
-        // Reserve the stall via Stall Service
+        // Check if there's an existing PENDING_PAYMENT reservation for this stall
+        Optional<Reservation> existingPending = reservationRepository
+            .findByStallIdAndStatus(request.getStallId(), Reservation.ReservationStatus.PENDING_PAYMENT);
+        
+        if (existingPending.isPresent()) {
+            Reservation pending = existingPending.get();
+            if (pending.getPaymentExpiresAt().isAfter(LocalDateTime.now())) {
+                logger.error("Stall {} is temporarily locked for payment until {}", 
+                    stall.getStallCode(), pending.getPaymentExpiresAt());
+                throw new StallNotAvailableException(
+                    String.format("Stall %s is temporarily locked for payment. Please try again later.", stall.getStallCode())
+                );
+            } else {
+                // Expired - auto-cancel it
+                logger.info("Auto-expiring reservation {} for stall {}", pending.getId(), request.getStallId());
+                pending.setStatus(Reservation.ReservationStatus.EXPIRED);
+                reservationRepository.save(pending);
+                stallServiceClient.releaseStall(request.getStallId());
+            }
+        }
+
+        // Temporarily reserve the stall via Stall Service
         boolean reserved = stallServiceClient.reserveStall(request.getStallId());
         if (!reserved) {
             throw new StallNotAvailableException("Failed to reserve stall. Please try again.");
         }
 
         try {
-            // Create reservation
+            // Create reservation with PENDING_PAYMENT status
             Reservation reservation = Reservation.builder()
                 .userId(userId)
                 .stallId(request.getStallId())
-                .status(Reservation.ReservationStatus.CONFIRMED)
+                .status(Reservation.ReservationStatus.PENDING_PAYMENT)
+                .paymentExpiresAt(LocalDateTime.now().plusMinutes(PAYMENT_LOCK_MINUTES))
                 .build();
 
             // Save reservation to get ID
             reservation = reservationRepository.save(reservation);
 
-            // Generate QR code via QRCode Service
-            String qrCodeBase64 = qrCodeServiceClient.generateQRCode(
-                reservation.getId(),
-                user.getName(),
-                stall.getStallCode()
-            );
+            logger.info("Reservation created with payment lock. ID: {}, Expires at: {}", 
+                reservation.getId(), reservation.getPaymentExpiresAt());
 
-            // Update reservation with QR code
-            if (qrCodeBase64 != null) {
-                reservation.setQrCodeBase64(qrCodeBase64);
-                reservation = reservationRepository.save(reservation);
-            }
-
-            logger.info("Reservation created successfully with ID: {}", reservation.getId());
-
+            // Return response WITHOUT QR code (generated after payment)
             return mapToReservationResponse(reservation, user, stall);
         } catch (Exception e) {
             // Rollback: Release the stall if reservation creation fails
@@ -122,6 +136,64 @@ public class ReservationService {
             stallServiceClient.releaseStall(request.getStallId());
             throw e;
         }
+    }
+
+    /**
+     * Complete payment for a pending reservation
+     * Generates QR code and confirms the reservation
+     */
+    @Transactional
+    public ReservationResponse completePayment(Long reservationId, Long userId) {
+        logger.info("Completing payment for reservation: {} by user: {}", reservationId, userId);
+        
+        // Find reservation
+        Reservation reservation = reservationRepository.findById(reservationId)
+            .orElseThrow(() -> new ResourceNotFoundException("Reservation not found with ID: " + reservationId));
+        
+        // Verify ownership
+        if (!reservation.getUserId().equals(userId)) {
+            throw new UnauthorizedException("Not authorized to complete payment for this reservation");
+        }
+        
+        // Check status
+        if (reservation.getStatus() != Reservation.ReservationStatus.PENDING_PAYMENT) {
+            throw new InvalidOperationException("Reservation is not pending payment");
+        }
+        
+        // Check if payment window expired
+        if (reservation.getPaymentExpiresAt().isBefore(LocalDateTime.now())) {
+            // Auto-cancel and release stall
+            logger.error("Payment window expired for reservation {}", reservationId);
+            reservation.setStatus(Reservation.ReservationStatus.EXPIRED);
+            reservationRepository.save(reservation);
+            stallServiceClient.releaseStall(reservation.getStallId());
+            throw new PaymentExpiredException("Payment window has expired. Please create a new reservation.");
+        }
+        
+        // Update to CONFIRMED
+        reservation.setStatus(Reservation.ReservationStatus.CONFIRMED);
+        reservation.setPaymentCompletedAt(LocalDateTime.now());
+        
+        // Get user and stall data
+        UserDto user = userServiceClient.getUserById(userId);
+        StallDto stall = stallServiceClient.getStallById(reservation.getStallId());
+        
+        // Generate QR code NOW
+        String qrCodeBase64 = qrCodeServiceClient.generateQRCode(
+            reservation.getId(),
+            user.getName(),
+            stall.getStallCode()
+        );
+        
+        if (qrCodeBase64 != null) {
+            reservation.setQrCodeBase64(qrCodeBase64);
+        }
+        
+        Reservation updated = reservationRepository.save(reservation);
+        
+        logger.info("Payment completed successfully for reservation: {}", reservationId);
+        
+        return mapToReservationResponse(updated, user, stall);
     }
 
     /**
@@ -194,6 +266,8 @@ public class ReservationService {
             .createdAt(reservation.getCreatedAt())
             .status(reservation.getStatus().name())
             .qrCodeBase64(reservation.getQrCodeBase64())
+            .paymentExpiresAt(reservation.getPaymentExpiresAt())
+            .paymentCompletedAt(reservation.getPaymentCompletedAt())
             .build();
     }
 

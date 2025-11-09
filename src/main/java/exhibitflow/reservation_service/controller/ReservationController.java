@@ -29,6 +29,7 @@ public class ReservationController {
 
     /**
      * Create a new reservation
+     * Creates a temporary lock (5 minutes) for payment
      * @param request Reservation request
      * @param userId User ID from API Gateway (via header or path variable)
      */
@@ -40,6 +41,20 @@ public class ReservationController {
         logger.info("Reservation request received for user: {}", userId);
         ReservationResponse response = reservationService.createReservation(request, userId);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
+    }
+
+    /**
+     * Complete payment for a pending reservation
+     * Confirms reservation and generates QR code
+     */
+    @PostMapping("/{reservationId}/complete-payment")
+    public ResponseEntity<ReservationResponse> completePayment(
+            @PathVariable Long reservationId,
+            @RequestHeader(value = "X-User-Id", required = true) Long userId
+    ) {
+        logger.info("Payment completion request for reservation: {} by user: {}", reservationId, userId);
+        ReservationResponse response = reservationService.completePayment(reservationId, userId);
+        return ResponseEntity.ok(response);
     }
 
     /**
