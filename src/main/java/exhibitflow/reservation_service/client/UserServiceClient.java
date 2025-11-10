@@ -32,11 +32,15 @@ public class UserServiceClient {
     public UserDto getUserById(Long userId) {
         try {
             String url = userServiceUrl + "/api/users/" + userId;
-            logger.debug("Fetching user from User Service: {}", url);
-            return restTemplate.getForObject(url, UserDto.class);
+            logger.info("Fetching user from User Service: {}", url);
+            UserDto user = restTemplate.getForObject(url, UserDto.class);
+            logger.info("Successfully fetched user: {}", user != null ? user.getName() : "null");
+            return user;
         } catch (Exception e) {
-            logger.error("Failed to fetch user with ID {}: {}", userId, e.getMessage());
-            throw new RuntimeException("Failed to fetch user from User Service", e);
+            logger.error("Failed to fetch user with ID {} from URL {}: {} - {}", 
+                userId, userServiceUrl, e.getClass().getSimpleName(), e.getMessage());
+            logger.error("Full exception: ", e);
+            throw new RuntimeException("Failed to fetch user from User Service: " + e.getMessage(), e);
         }
     }
 

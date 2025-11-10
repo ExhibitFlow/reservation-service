@@ -33,11 +33,15 @@ public class StallServiceClient {
     public StallDto getStallById(Long stallId) {
         try {
             String url = stallServiceUrl + "/api/stalls/" + stallId;
-            logger.debug("Fetching stall from Stall Service: {}", url);
-            return restTemplate.getForObject(url, StallDto.class);
+            logger.info("Fetching stall from Stall Service: {}", url);
+            StallDto stall = restTemplate.getForObject(url, StallDto.class);
+            logger.info("Successfully fetched stall: {}", stall != null ? stall.getStallCode() : "null");
+            return stall;
         } catch (Exception e) {
-            logger.error("Failed to fetch stall with ID {}: {}", stallId, e.getMessage());
-            throw new RuntimeException("Failed to fetch stall from Stall Service", e);
+            logger.error("Failed to fetch stall with ID {} from URL {}: {} - {}", 
+                stallId, stallServiceUrl, e.getClass().getSimpleName(), e.getMessage());
+            logger.error("Full exception: ", e);
+            throw new RuntimeException("Failed to fetch stall from Stall Service: " + e.getMessage(), e);
         }
     }
 

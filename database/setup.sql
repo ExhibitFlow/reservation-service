@@ -20,19 +20,23 @@ CREATE TABLE reservations (
     stall_id BIGINT NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     qr_code_base64 LONGTEXT,
-    status VARCHAR(20) NOT NULL DEFAULT 'CONFIRMED',
+    status VARCHAR(50) NOT NULL DEFAULT 'CONFIRMED',
+    payment_expires_at TIMESTAMP NULL,
+    payment_completed_at TIMESTAMP NULL,
     
     -- Indexes for better query performance
     INDEX idx_user_id (user_id),
     INDEX idx_stall_id (stall_id),
     INDEX idx_status (status),
     INDEX idx_created_at (created_at),
+    INDEX idx_payment_expires (payment_expires_at),
     
     -- Composite index for common queries
     INDEX idx_user_stall (user_id, stall_id),
+    INDEX idx_status_stall (status, stall_id),
     
     -- Constraint to ensure status is valid
-    CONSTRAINT chk_status CHECK (status IN ('CONFIRMED', 'CANCELLED'))
+    CONSTRAINT chk_status CHECK (status IN ('PENDING_PAYMENT', 'CONFIRMED', 'CANCELLED', 'EXPIRED'))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Create a user for the application (optional - update credentials as needed)

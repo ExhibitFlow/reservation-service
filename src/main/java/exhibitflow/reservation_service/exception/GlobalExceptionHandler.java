@@ -121,10 +121,17 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGenericException(Exception ex) {
         logger.error("Unexpected error: {}", ex.getMessage(), ex);
+        
+        // In development, include detailed error message
+        String detailedMessage = ex.getMessage();
+        if (ex.getCause() != null) {
+            detailedMessage += " | Cause: " + ex.getCause().getMessage();
+        }
+        
         ErrorResponse error = ErrorResponse.builder()
                 .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
-                .message("An unexpected error occurred")
-                .error("Internal Server Error")
+                .message(detailedMessage)
+                .error("Internal Server Error: " + ex.getClass().getSimpleName())
                 .timestamp(System.currentTimeMillis())
                 .build();
         return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
