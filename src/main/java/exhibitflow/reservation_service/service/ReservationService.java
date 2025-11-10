@@ -60,10 +60,10 @@ public class ReservationService {
             throw new ResourceNotFoundException("User not found with ID: " + userId);
         }
 
-        // Check if user has reached reservation limit (only count CONFIRMED reservations)
-        long userReservationCount = reservationRepository.countByUserIdAndStatus(
+        // Check if user has reached reservation limit (count CONFIRMED and PENDING_PAYMENT reservations)
+        long userReservationCount = reservationRepository.countByUserIdAndStatusIn(
             userId, 
-            Reservation.ReservationStatus.CONFIRMED
+            List.of(Reservation.ReservationStatus.CONFIRMED, Reservation.ReservationStatus.PENDING_PAYMENT)
         );
         if (userReservationCount >= MAX_RESERVATIONS_PER_USER) {
             logger.error("User {} has reached maximum reservation limit of {}", userId, MAX_RESERVATIONS_PER_USER);
