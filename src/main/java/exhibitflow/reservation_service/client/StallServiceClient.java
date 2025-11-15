@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.PutMapping;
  */
 @FeignClient(
     name = "stall-service",
-    url = "${services.stall-service.url:http://localhost:8082}"
+    url = "${services.stall-service.url}"
 )
 public interface StallServiceClient {
 
