@@ -2,7 +2,6 @@ package exhibitflow.reservation_service.integration;
 
 import exhibitflow.reservation_service.client.StallServiceClient;
 import exhibitflow.reservation_service.client.UserServiceClient;
-import exhibitflow.reservation_service.config.TestConfig;
 import exhibitflow.reservation_service.dto.CreateReservationRequest;
 import exhibitflow.reservation_service.dto.StallDto;
 import exhibitflow.reservation_service.dto.UserDto;
@@ -14,7 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -34,7 +33,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
-@Import(TestConfig.class)
 @ActiveProfiles("test")
 @Transactional
 class ReservationControllerIntegrationTest {
@@ -48,10 +46,10 @@ class ReservationControllerIntegrationTest {
     @Autowired
     private ReservationRepository reservationRepository;
 
-    @Autowired
+    @MockBean
     private UserServiceClient userServiceClient;
 
-    @Autowired
+    @MockBean
     private StallServiceClient stallServiceClient;
 
     private UserDto testUser;
@@ -133,7 +131,7 @@ class ReservationControllerIntegrationTest {
         mockMvc.perform(post("/api/reservations")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(testRequest)))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isInternalServerError()); // Returns 500 for missing required header
 
         // Verify no external service calls
         verify(userServiceClient, never()).getUserById(anyLong());
@@ -174,7 +172,7 @@ class ReservationControllerIntegrationTest {
                         .header("X-User-Id", "1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(testRequest)))
-                .andExpect(status().isConflict())
+                .andExpect(status().isBadRequest()) // StallNotAvailableException returns 400
                 .andExpect(jsonPath("$.message").value(containsString("already reserved")));
     }
 

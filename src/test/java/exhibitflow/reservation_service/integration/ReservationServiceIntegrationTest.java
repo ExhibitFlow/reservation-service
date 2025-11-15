@@ -2,7 +2,6 @@ package exhibitflow.reservation_service.integration;
 
 import exhibitflow.reservation_service.client.StallServiceClient;
 import exhibitflow.reservation_service.client.UserServiceClient;
-import exhibitflow.reservation_service.config.TestConfig;
 import exhibitflow.reservation_service.dto.CreateReservationRequest;
 import exhibitflow.reservation_service.dto.ReservationResponse;
 import exhibitflow.reservation_service.dto.StallDto;
@@ -15,7 +14,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,7 +30,6 @@ import static org.mockito.Mockito.*;
  * Tests the complete flow as if connected to User and Stall microservices
  */
 @SpringBootTest
-@Import(TestConfig.class)
 @ActiveProfiles("test")
 @Transactional
 class ReservationServiceIntegrationTest {
@@ -42,10 +40,10 @@ class ReservationServiceIntegrationTest {
     @Autowired
     private ReservationRepository reservationRepository;
 
-    @Autowired
+    @MockBean
     private UserServiceClient userServiceClient;
 
-    @Autowired
+    @MockBean
     private StallServiceClient stallServiceClient;
 
     private UserDto testUser;
