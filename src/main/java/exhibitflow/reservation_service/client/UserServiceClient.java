@@ -6,6 +6,7 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
 
 /**
  * Feign client for communicating with User Service
@@ -15,7 +16,7 @@ import org.springframework.web.bind.annotation.PathVariable;
     url = "${services.user-service.url}",
     configuration = FeignClientConfig.class
 )
-RequestMapping("/api/users")
+@RequestMapping("/api/users")
 public interface UserServiceClient {
 
     /**

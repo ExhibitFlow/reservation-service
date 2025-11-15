@@ -8,6 +8,7 @@ import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
 
 /**
  * Feign client for communicating with Stall Service
@@ -17,7 +18,7 @@ import org.springframework.web.bind.annotation.PutMapping;
     url = "${services.stall-service.url}",
     configuration = FeignClientConfig.class
 )
-RequestMapping("/api/stalls")
+@RequestMapping("/api/stalls")
 public interface StallServiceClient {
 
     /**
