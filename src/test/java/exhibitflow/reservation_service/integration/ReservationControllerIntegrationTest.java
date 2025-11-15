@@ -102,7 +102,7 @@ class ReservationControllerIntegrationTest {
         );
 
         // Make request
-        mockMvc.perform(post("/api/reservations")
+        mockMvc.perform(post("/api/v1/reservations")
                         .header("X-User-Id", "1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(testRequest)))
@@ -128,7 +128,7 @@ class ReservationControllerIntegrationTest {
     @Test
     void testCreateReservation_MissingUserIdHeader() throws Exception {
         // Make request without X-User-Id header
-        mockMvc.perform(post("/api/reservations")
+        mockMvc.perform(post("/api/v1/reservations")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(testRequest)))
                 .andExpect(status().isInternalServerError()); // Returns 500 for missing required header
@@ -144,7 +144,7 @@ class ReservationControllerIntegrationTest {
         when(userServiceClient.getUserById(999L)).thenReturn(null);
 
         // Make request
-        mockMvc.perform(post("/api/reservations")
+        mockMvc.perform(post("/api/v1/reservations")
                         .header("X-User-Id", "999")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(testRequest)))
@@ -168,7 +168,7 @@ class ReservationControllerIntegrationTest {
         when(stallServiceClient.getStallById(1L)).thenReturn(reservedStall);
 
         // Make request
-        mockMvc.perform(post("/api/reservations")
+        mockMvc.perform(post("/api/v1/reservations")
                         .header("X-User-Id", "1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(testRequest)))
@@ -192,7 +192,7 @@ class ReservationControllerIntegrationTest {
         );
 
         // Create reservation
-        String createResponse = mockMvc.perform(post("/api/reservations")
+        String createResponse = mockMvc.perform(post("/api/v1/reservations")
                         .header("X-User-Id", "1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(testRequest)))
@@ -205,7 +205,7 @@ class ReservationControllerIntegrationTest {
         Long reservationId = objectMapper.readTree(createResponse).get("id").asLong();
 
         // Complete payment
-        mockMvc.perform(post("/api/reservations/" + reservationId + "/complete-payment")
+        mockMvc.perform(post("/api/v1/reservations/" + reservationId + "/complete-payment")
                         .header("X-User-Id", "1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(reservationId))
@@ -226,7 +226,7 @@ class ReservationControllerIntegrationTest {
         reservation = reservationRepository.save(reservation);
 
         // Attempt to complete payment with different user
-        mockMvc.perform(post("/api/reservations/" + reservation.getId() + "/complete-payment")
+        mockMvc.perform(post("/api/v1/reservations/" + reservation.getId() + "/complete-payment")
                         .header("X-User-Id", "999"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.message").value(containsString("Not authorized")));
@@ -276,7 +276,7 @@ class ReservationControllerIntegrationTest {
         when(stallServiceClient.getStallById(2L)).thenReturn(stall2);
 
         // Get reservations
-        mockMvc.perform(get("/api/reservations/my")
+        mockMvc.perform(get("/api/v1/reservations/my")
                         .header("X-User-Id", "1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(2)))
@@ -343,11 +343,13 @@ class ReservationControllerIntegrationTest {
         reservationRepository.save(res2);
 
         // Get all reservations
-        mockMvc.perform(get("/api/reservations"))
+        mockMvc.perform(get("/api/v1/reservations"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(2)))
-                .andExpect(jsonPath("$[*].userName", containsInAnyOrder("User One", "User Two")))
-                .andExpect(jsonPath("$[*].stallCode", containsInAnyOrder("A-001", "A-002")));
+                .andExpect(jsonPath("$.content", hasSize(2)))
+                .andExpect(jsonPath("$.content[*].userName", containsInAnyOrder("User One", "User Two")))
+                .andExpect(jsonPath("$.content[*].stallCode", containsInAnyOrder("A-001", "A-002")))
+                .andExpect(jsonPath("$.totalElements").value(2))
+                .andExpect(jsonPath("$.totalPages").value(1));
     }
 
     @Test
@@ -368,7 +370,7 @@ class ReservationControllerIntegrationTest {
         );
 
         // Create reservation
-        String createResponse = mockMvc.perform(post("/api/reservations")
+        String createResponse = mockMvc.perform(post("/api/v1/reservations")
                         .header("X-User-Id", "1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(testRequest)))
@@ -384,7 +386,7 @@ class ReservationControllerIntegrationTest {
         when(stallServiceClient.releaseStall(1L)).thenReturn(testStall);
 
         // Cancel reservation
-        mockMvc.perform(delete("/api/reservations/" + reservationId)
+        mockMvc.perform(delete("/api/v1/reservations/" + reservationId)
                         .header("X-User-Id", "1"))
                 .andExpect(status().isNoContent());
 
@@ -404,7 +406,7 @@ class ReservationControllerIntegrationTest {
         reservation = reservationRepository.save(reservation);
 
         // Attempt to cancel with different user
-        mockMvc.perform(delete("/api/reservations/" + reservation.getId())
+        mockMvc.perform(delete("/api/v1/reservations/" + reservation.getId())
                         .header("X-User-Id", "999"))
                 .andExpect(status().isInternalServerError())
                 .andExpect(jsonPath("$.message").value(containsString("Unauthorized")));
@@ -419,7 +421,7 @@ class ReservationControllerIntegrationTest {
         CreateReservationRequest invalidRequest = new CreateReservationRequest();
 
         // Make request
-        mockMvc.perform(post("/api/reservations")
+        mockMvc.perform(post("/api/v1/reservations")
                         .header("X-User-Id", "1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(invalidRequest)))
