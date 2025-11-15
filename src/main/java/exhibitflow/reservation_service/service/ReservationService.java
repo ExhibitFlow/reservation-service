@@ -2,20 +2,29 @@ package exhibitflow.reservation_service.service;
 
 import exhibitflow.reservation_service.client.StallServiceClient;
 import exhibitflow.reservation_service.client.UserServiceClient;
+import exhibitflow.reservation_service.config.ApplicationProperties;
 import exhibitflow.reservation_service.dto.CreateReservationRequest;
+import exhibitflow.reservation_service.dto.PagedResponse;
 import exhibitflow.reservation_service.dto.ReservationResponse;
+import exhibitflow.reservation_service.dto.ReservationSummary;
 import exhibitflow.reservation_service.dto.StallDto;
 import exhibitflow.reservation_service.dto.UserDto;
 import exhibitflow.reservation_service.entity.Reservation;
 import exhibitflow.reservation_service.exception.*;
 import exhibitflow.reservation_service.repository.ReservationRepository;
+import exhibitflow.reservation_service.util.MDCUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -27,31 +36,41 @@ import java.util.stream.Collectors;
  * Implements 5-minute payment lock mechanism
  */
 @Service
-public class ReservationService {
+public class ReservationService implements IReservationService {
 
     private static final Logger logger = LoggerFactory.getLogger(ReservationService.class);
-    private static final int MAX_RESERVATIONS_PER_USER = 3;
-    private static final int PAYMENT_LOCK_MINUTES = 5;
+    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+    private final ReservationRepository reservationRepository;
+    private final UserServiceClient userServiceClient;
+    private final StallServiceClient stallServiceClient;
+    private final QRCodeGeneratorService qrCodeGeneratorService;
+    private final ApplicationProperties applicationProperties;
 
     @Autowired
-    private ReservationRepository reservationRepository;
-
-    @Autowired
-    private UserServiceClient userServiceClient;
-
-    @Autowired
-    private StallServiceClient stallServiceClient;
-
-    @Autowired
-    private QRCodeGeneratorService qrCodeGeneratorService;
+    public ReservationService(
+            ReservationRepository reservationRepository,
+            UserServiceClient userServiceClient,
+            StallServiceClient stallServiceClient,
+            QRCodeGeneratorService qrCodeGeneratorService,
+            ApplicationProperties applicationProperties) {
+        this.reservationRepository = reservationRepository;
+        this.userServiceClient = userServiceClient;
+        this.stallServiceClient = stallServiceClient;
+        this.qrCodeGeneratorService = qrCodeGeneratorService;
+        this.applicationProperties = applicationProperties;
+    }
 
     /**
      * Creates a new reservation with payment lock (5 minutes)
      * Stall is temporarily locked until payment is completed
      * Communicates with User Service, Stall Service (QR code generated after payment)
      */
+    @Override
     @Transactional
+    @CacheEvict(value = "reservations", allEntries = true)
     public ReservationResponse createReservation(CreateReservationRequest request, Long userId) {
+        MDCUtil.setUserId(userId);
         logger.info("Creating reservation with payment lock for user: {} and stall: {}", userId, request.getStallId());
 
         // Validate user exists via User Service
@@ -61,14 +80,15 @@ public class ReservationService {
         }
 
         // Check if user has reached reservation limit (count CONFIRMED and PENDING_PAYMENT reservations)
+        int maxReservations = applicationProperties.getReservation().getMaxReservationsPerUser();
         long userReservationCount = reservationRepository.countByUserIdAndStatusIn(
             userId, 
             List.of(Reservation.ReservationStatus.CONFIRMED, Reservation.ReservationStatus.PENDING_PAYMENT)
         );
-        if (userReservationCount >= MAX_RESERVATIONS_PER_USER) {
-            logger.error("User {} has reached maximum reservation limit of {}", userId, MAX_RESERVATIONS_PER_USER);
+        if (userReservationCount >= maxReservations) {
+            logger.error("User {} has reached maximum reservation limit of {}", userId, maxReservations);
             throw new ReservationLimitExceededException(
-                String.format("Maximum reservation limit of %d stalls per business has been reached", MAX_RESERVATIONS_PER_USER)
+                String.format("Maximum reservation limit of %d stalls per business has been reached", maxReservations)
             );
         }
 
@@ -124,11 +144,12 @@ public class ReservationService {
 
         try {
             // Create reservation with PENDING_PAYMENT status
+            int paymentLockMinutes = applicationProperties.getReservation().getPaymentLockMinutes();
             Reservation reservation = Reservation.builder()
                 .userId(userId)
                 .stallId(request.getStallId())
                 .status(Reservation.ReservationStatus.PENDING_PAYMENT)
-                .paymentExpiresAt(LocalDateTime.now().plusMinutes(PAYMENT_LOCK_MINUTES))
+                .paymentExpiresAt(LocalDateTime.now().plusMinutes(paymentLockMinutes))
                 .build();
 
             // Save reservation to get ID
@@ -155,8 +176,12 @@ public class ReservationService {
      * Complete payment for a pending reservation
      * Generates QR code and confirms the reservation
      */
+    @Override
     @Transactional
+    @CacheEvict(value = "reservations", allEntries = true)
     public ReservationResponse completePayment(Long reservationId, Long userId) {
+        MDCUtil.setUserId(userId);
+        MDCUtil.setReservationId(reservationId);
         logger.info("Completing payment for reservation: {} by user: {}", reservationId, userId);
         
         // Find reservation
@@ -219,7 +244,10 @@ public class ReservationService {
     /**
      * Get all reservations for a specific user
      */
+    @Override
+    @Cacheable(value = "reservations", key = "'user_' + #userId")
     public List<ReservationResponse> getUserReservations(Long userId) {
+        MDCUtil.setUserId(userId);
         logger.debug("Fetching reservations for user: {}", userId);
         
         // Validate user exists
@@ -246,10 +274,61 @@ public class ReservationService {
     }
 
     /**
+     * Get all reservations with pagination
+     */
+    @Override
+    @Cacheable(value = "reservations", key = "'all_' + #pageable.pageNumber + '_' + #pageable.pageSize")
+    public PagedResponse<ReservationSummary> getAllReservations(Pageable pageable) {
+        logger.debug("Fetching all reservations with pagination: page={}, size={}", 
+            pageable.getPageNumber(), pageable.getPageSize());
+        
+        Page<Reservation> page = reservationRepository.findAll(pageable);
+        
+        List<ReservationSummary> summaries = page.getContent().stream()
+            .map(this::mapToReservationSummary)
+            .collect(Collectors.toList());
+        
+        return PagedResponse.<ReservationSummary>builder()
+            .content(summaries)
+            .pageNumber(page.getNumber())
+            .pageSize(page.getSize())
+            .totalElements(page.getTotalElements())
+            .totalPages(page.getTotalPages())
+            .first(page.isFirst())
+            .last(page.isLast())
+            .build();
+    }
+
+    /**
+     * Get a specific reservation by ID
+     */
+    @Override
+    @Cacheable(value = "reservations", key = "'reservation_' + #reservationId")
+    public ReservationResponse getReservationById(Long reservationId, Long userId) {
+        MDCUtil.setUserId(userId);
+        MDCUtil.setReservationId(reservationId);
+        logger.debug("Fetching reservation: {} for user: {}", reservationId, userId);
+        
+        Reservation reservation = reservationRepository.findById(reservationId)
+            .orElseThrow(() -> new ResourceNotFoundException("Reservation not found with ID: " + reservationId));
+        
+        // Verify ownership
+        if (!reservation.getUserId().equals(userId)) {
+            throw new UnauthorizedException("Not authorized to view this reservation");
+        }
+        
+        return mapToReservationResponseWithExternalData(reservation);
+    }
+
+    /**
      * Cancel a reservation
      */
+    @Override
     @Transactional
+    @CacheEvict(value = "reservations", allEntries = true)
     public void cancelReservation(Long reservationId, Long userId) {
+        MDCUtil.setUserId(userId);
+        MDCUtil.setReservationId(reservationId);
         logger.info("Cancelling reservation: {} for user: {}", reservationId, userId);
         
         Reservation reservation = reservationRepository.findById(reservationId)
@@ -272,6 +351,31 @@ public class ReservationService {
         }
 
         logger.info("Reservation {} cancelled successfully", reservationId);
+    }
+
+    /**
+     * Check if a stall has active reservations
+     */
+    @Override
+    public boolean hasActiveReservation(Long stallId) {
+        logger.debug("Checking active reservations for stall: {}", stallId);
+        return reservationRepository.findByStallIdAndStatus(
+            stallId, 
+            Reservation.ReservationStatus.CONFIRMED
+        ).isPresent();
+    }
+
+    /**
+     * Count active reservations for a user
+     */
+    @Override
+    public long countActiveReservationsForUser(Long userId) {
+        MDCUtil.setUserId(userId);
+        logger.debug("Counting active reservations for user: {}", userId);
+        return reservationRepository.countByUserIdAndStatusIn(
+            userId,
+            List.of(Reservation.ReservationStatus.CONFIRMED, Reservation.ReservationStatus.PENDING_PAYMENT)
+        );
     }
 
     /**
@@ -299,8 +403,46 @@ public class ReservationService {
      * Map reservation with external service calls for user and stall data
      */
     private ReservationResponse mapToReservationResponseWithExternalData(Reservation reservation) {
-        UserDto user = userServiceClient.getUserById(reservation.getUserId());
-        StallDto stall = stallServiceClient.getStallById(reservation.getStallId());
-        return mapToReservationResponse(reservation, user, stall);
+        try {
+            UserDto user = userServiceClient.getUserById(reservation.getUserId());
+            StallDto stall = stallServiceClient.getStallById(reservation.getStallId());
+            return mapToReservationResponse(reservation, user, stall);
+        } catch (Exception e) {
+            logger.error("Error fetching external data for reservation {}: {}", 
+                reservation.getId(), e.getMessage());
+            throw new ExternalServiceException(
+                "Failed to fetch complete reservation details", e);
+        }
+    }
+
+    /**
+     * Map reservation to summary
+     */
+    private ReservationSummary mapToReservationSummary(Reservation reservation) {
+        try {
+            UserDto user = userServiceClient.getUserById(reservation.getUserId());
+            StallDto stall = stallServiceClient.getStallById(reservation.getStallId());
+            
+            return ReservationSummary.builder()
+                .id(reservation.getId())
+                .userName(user.getName())
+                .businessName(user.getBusinessName())
+                .stallCode(stall.getStallCode())
+                .status(reservation.getStatus().name())
+                .createdAt(reservation.getCreatedAt().format(DATE_TIME_FORMATTER))
+                .build();
+        } catch (Exception e) {
+            logger.warn("Error creating summary for reservation {}: {}", 
+                reservation.getId(), e.getMessage());
+            // Return partial data
+            return ReservationSummary.builder()
+                .id(reservation.getId())
+                .userName("N/A")
+                .businessName("N/A")
+                .stallCode("N/A")
+                .status(reservation.getStatus().name())
+                .createdAt(reservation.getCreatedAt().format(DATE_TIME_FORMATTER))
+                .build();
+        }
     }
 }

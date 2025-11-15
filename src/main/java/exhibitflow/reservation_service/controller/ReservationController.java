@@ -1,12 +1,17 @@
 package exhibitflow.reservation_service.controller;
 
 import exhibitflow.reservation_service.dto.CreateReservationRequest;
+import exhibitflow.reservation_service.dto.PagedResponse;
 import exhibitflow.reservation_service.dto.ReservationResponse;
+import exhibitflow.reservation_service.dto.ReservationSummary;
 import exhibitflow.reservation_service.service.ReservationService;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -16,22 +21,25 @@ import java.util.List;
 /**
  * Reservation Controller for microservices architecture
  * Expects userId to be passed from API Gateway (extracted from JWT)
+ * Version 1 API - supports pagination and enhanced features
  */
 @RestController
-@RequestMapping("/api/reservations")
+@RequestMapping("/api/v1/reservations")
 @CrossOrigin(origins = "*")
 public class ReservationController {
 
     private static final Logger logger = LoggerFactory.getLogger(ReservationController.class);
 
+    private final ReservationService reservationService;
+
     @Autowired
-    private ReservationService reservationService;
+    public ReservationController(ReservationService reservationService) {
+        this.reservationService = reservationService;
+    }
 
     /**
      * Create a new reservation
      * Creates a temporary lock (5 minutes) for payment
-     * @param request Reservation request
-     * @param userId User ID from API Gateway (via header or path variable)
      */
     @PostMapping
     public ResponseEntity<ReservationResponse> createReservation(
@@ -70,12 +78,37 @@ public class ReservationController {
     }
 
     /**
-     * Get all reservations (admin endpoint)
+     * Get a specific reservation by ID
+     */
+    @GetMapping("/{reservationId}")
+    public ResponseEntity<ReservationResponse> getReservationById(
+            @PathVariable Long reservationId,
+            @RequestHeader(value = "X-User-Id", required = true) Long userId
+    ) {
+        logger.info("Fetching reservation {} for user: {}", reservationId, userId);
+        ReservationResponse reservation = reservationService.getReservationById(reservationId, userId);
+        return ResponseEntity.ok(reservation);
+    }
+
+    /**
+     * Get all reservations (admin endpoint) with pagination
      */
     @GetMapping
-    public ResponseEntity<List<ReservationResponse>> getAllReservations() {
-        logger.info("Fetching all reservations");
-        List<ReservationResponse> reservations = reservationService.getAllReservations();
+    public ResponseEntity<PagedResponse<ReservationSummary>> getAllReservations(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "DESC") String direction
+    ) {
+        logger.info("Fetching all reservations (page={}, size={}, sortBy={}, direction={})", 
+            page, size, sortBy, direction);
+        
+        Sort.Direction sortDirection = "ASC".equalsIgnoreCase(direction) 
+            ? Sort.Direction.ASC 
+            : Sort.Direction.DESC;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(sortDirection, sortBy));
+        
+        PagedResponse<ReservationSummary> reservations = reservationService.getAllReservations(pageable);
         return ResponseEntity.ok(reservations);
     }
 
@@ -90,5 +123,17 @@ public class ReservationController {
         logger.info("Cancelling reservation {} for user: {}", reservationId, userId);
         reservationService.cancelReservation(reservationId, userId);
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Get active reservation count for user
+     */
+    @GetMapping("/my/count")
+    public ResponseEntity<Long> getActiveReservationCount(
+            @RequestHeader(value = "X-User-Id", required = true) Long userId
+    ) {
+        logger.info("Fetching active reservation count for user: {}", userId);
+        long count = reservationService.countActiveReservationsForUser(userId);
+        return ResponseEntity.ok(count);
     }
 }
