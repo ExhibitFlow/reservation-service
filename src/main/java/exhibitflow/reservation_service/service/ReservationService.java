@@ -1,6 +1,5 @@
 package exhibitflow.reservation_service.service;
 
-import exhibitflow.reservation_service.client.QRCodeServiceClient;
 import exhibitflow.reservation_service.client.StallServiceClient;
 import exhibitflow.reservation_service.client.UserServiceClient;
 import exhibitflow.reservation_service.dto.CreateReservationRequest;
@@ -18,13 +17,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
  * Reservation Service for microservices architecture
- * Communicates with User, Stall, and QRCode services via REST
+ * Communicates with User and Stall services via REST
+ * Generates QR codes using ZXing library
  * Implements 5-minute payment lock mechanism
  */
 @Service
@@ -44,7 +43,7 @@ public class ReservationService {
     private StallServiceClient stallServiceClient;
 
     @Autowired
-    private QRCodeServiceClient qrCodeServiceClient;
+    private QRCodeGeneratorService qrCodeGeneratorService;
 
     /**
      * Creates a new reservation with payment lock (5 minutes)
@@ -196,19 +195,18 @@ public class ReservationService {
         UserDto user = userServiceClient.getUserById(userId);
         StallDto stall = stallServiceClient.getStallById(reservation.getStallId());
         
-        // Generate QR code NOW
-        Map<String, Object> qrRequest = new java.util.HashMap<>();
-        qrRequest.put("reservationId", reservation.getId());
-        qrRequest.put("userName", user.getName());
-        qrRequest.put("stallCode", stall.getStallCode());
-
+        // Generate QR code using ZXing
         try {
-            Map<String, Object> qrResponse = qrCodeServiceClient.generateQRCode(qrRequest);
-            if (qrResponse != null && qrResponse.containsKey("qrCodeBase64")) {
-                reservation.setQrCodeBase64((String) qrResponse.get("qrCodeBase64"));
-            }
+            String qrCodeBase64 = qrCodeGeneratorService.generateQRCode(
+                reservation.getId(),
+                user.getName(),
+                stall.getStallCode()
+            );
+            reservation.setQrCodeBase64(qrCodeBase64);
+            logger.info("QR code generated successfully for reservation: {}", reservationId);
         } catch (Exception e) {
             logger.error("Failed to generate QR code: {}", e.getMessage());
+            // Continue without QR code - can be regenerated later
         }
         
         Reservation updated = reservationRepository.save(reservation);
