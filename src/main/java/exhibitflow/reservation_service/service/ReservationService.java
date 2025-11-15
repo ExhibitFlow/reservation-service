@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -103,13 +104,22 @@ public class ReservationService {
                 logger.info("Auto-expiring reservation {} for stall {}", pending.getId(), request.getStallId());
                 pending.setStatus(Reservation.ReservationStatus.EXPIRED);
                 reservationRepository.save(pending);
-                stallServiceClient.releaseStall(request.getStallId());
+                try {
+                    stallServiceClient.releaseStall(request.getStallId());
+                } catch (Exception e) {
+                    logger.warn("Failed to release stall {}: {}", request.getStallId(), e.getMessage());
+                }
             }
         }
 
         // Temporarily reserve the stall via Stall Service
-        boolean reserved = stallServiceClient.reserveStall(request.getStallId());
-        if (!reserved) {
+        try {
+            StallDto reservedStall = stallServiceClient.reserveStall(request.getStallId());
+            if (reservedStall == null) {
+                throw new StallNotAvailableException("Failed to reserve stall. Please try again.");
+            }
+        } catch (Exception e) {
+            logger.error("Failed to reserve stall {}: {}", request.getStallId(), e.getMessage());
             throw new StallNotAvailableException("Failed to reserve stall. Please try again.");
         }
 
@@ -133,7 +143,11 @@ public class ReservationService {
         } catch (Exception e) {
             // Rollback: Release the stall if reservation creation fails
             logger.error("Failed to create reservation, releasing stall: {}", e.getMessage());
-            stallServiceClient.releaseStall(request.getStallId());
+            try {
+                stallServiceClient.releaseStall(request.getStallId());
+            } catch (Exception ex) {
+                logger.error("Failed to release stall during rollback: {}", ex.getMessage());
+            }
             throw e;
         }
     }
@@ -166,7 +180,11 @@ public class ReservationService {
             logger.error("Payment window expired for reservation {}", reservationId);
             reservation.setStatus(Reservation.ReservationStatus.EXPIRED);
             reservationRepository.save(reservation);
-            stallServiceClient.releaseStall(reservation.getStallId());
+            try {
+                stallServiceClient.releaseStall(reservation.getStallId());
+            } catch (Exception e) {
+                logger.warn("Failed to release stall {}: {}", reservation.getStallId(), e.getMessage());
+            }
             throw new PaymentExpiredException("Payment window has expired. Please create a new reservation.");
         }
         
@@ -179,14 +197,18 @@ public class ReservationService {
         StallDto stall = stallServiceClient.getStallById(reservation.getStallId());
         
         // Generate QR code NOW
-        String qrCodeBase64 = qrCodeServiceClient.generateQRCode(
-            reservation.getId(),
-            user.getName(),
-            stall.getStallCode()
-        );
-        
-        if (qrCodeBase64 != null) {
-            reservation.setQrCodeBase64(qrCodeBase64);
+        Map<String, Object> qrRequest = new java.util.HashMap<>();
+        qrRequest.put("reservationId", reservation.getId());
+        qrRequest.put("userName", user.getName());
+        qrRequest.put("stallCode", stall.getStallCode());
+
+        try {
+            Map<String, Object> qrResponse = qrCodeServiceClient.generateQRCode(qrRequest);
+            if (qrResponse != null && qrResponse.containsKey("qrCodeBase64")) {
+                reservation.setQrCodeBase64((String) qrResponse.get("qrCodeBase64"));
+            }
+        } catch (Exception e) {
+            logger.error("Failed to generate QR code: {}", e.getMessage());
         }
         
         Reservation updated = reservationRepository.save(reservation);
@@ -245,8 +267,12 @@ public class ReservationService {
         reservationRepository.save(reservation);
 
         // Release the stall via Stall Service
-        stallServiceClient.releaseStall(reservation.getStallId());
-        
+        try {
+            stallServiceClient.releaseStall(reservation.getStallId());
+        } catch (Exception e) {
+            logger.error("Failed to release stall {}: {}", reservation.getStallId(), e.getMessage());
+        }
+
         logger.info("Reservation {} cancelled successfully", reservationId);
     }
 

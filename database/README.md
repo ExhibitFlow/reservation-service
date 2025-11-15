@@ -1,138 +1,207 @@
 # Database Setup Guide
 
 ## Overview
-This directory contains SQL scripts for setting up the MySQL database for the Reservation Service.
+This directory contains SQL scripts for setting up the PostgreSQL database for the Reservation Service.
 
 ## Prerequisites
-- MySQL Server 8.0 or higher installed
-- MySQL client or MySQL Workbench
+- PostgreSQL Server 12 or higher installed
+- psql command-line tool or pgAdmin
 
 ## Database Configuration
 - **Database Name**: `reservation_db`
-- **Default Port**: 3306
-- **Username**: `root` (as configured in application.properties)
-- **Password**: `root` (as configured in application.properties)
+- **Default Port**: 5432
+- **Username**: `postgres` (as configured in application.properties)
+- **Password**: `postgres` (as configured in application.properties)
 
 ## Setup Instructions
 
 ### Option 1: Automatic Setup (Recommended)
 The application is configured with `spring.jpa.hibernate.ddl-auto=update`, which means:
-- The database will be created automatically when you run the application
-- Tables will be created/updated based on JPA entities
+- Tables will be created/updated automatically based on JPA entities
+- No manual SQL execution required
 
-Simply start the application and the database will be initialized automatically.
-
-### Option 2: Manual Setup
-If you prefer to create the database manually:
-
-1. **Start MySQL Server**
+**Steps:**
+1. Create the database first:
    ```bash
-   # On Windows (if MySQL is in PATH)
-   net start MySQL80
-   
-   # Or start via MySQL Workbench or XAMPP/WAMP
+   psql -U postgres -c "CREATE DATABASE reservation_db WITH ENCODING 'UTF8';"
    ```
 
-2. **Connect to MySQL**
+2. Start the application and tables will be initialized automatically.
+
+### Option 2: Manual Setup
+If you prefer to create the database and tables manually:
+
+1. **Start PostgreSQL Server**
    ```bash
-   mysql -u root -p
+   # On Windows (if PostgreSQL is in PATH)
+   pg_ctl -D "C:\Program Files\PostgreSQL\15\data" start
+   
+   # On Linux/macOS
+   sudo systemctl start postgresql
+   # or
+   brew services start postgresql
+   ```
+
+2. **Create Database**
+   ```bash
+   psql -U postgres -c "CREATE DATABASE reservation_db WITH ENCODING 'UTF8';"
    ```
 
 3. **Run the setup script**
-   ```sql
-   source d:/Github_repos/Architecture-assignment/Reservation-service/database/setup.sql
+   ```bash
+   psql -U postgres -d reservation_db -f setup.sql
    ```
    
-   Or using MySQL Workbench:
-   - Open MySQL Workbench
-   - Connect to your local MySQL instance
-   - File > Run SQL Script
-   - Select `setup.sql`
+   Or using pgAdmin:
+   - Open pgAdmin
+   - Connect to your local PostgreSQL instance
+   - Right-click on reservation_db > Query Tool
+   - Open and execute `setup.sql`
 
-4. **Verify the setup**
-   ```sql
-   USE reservation_db;
-   SHOW TABLES;
-   DESCRIBE reservations;
-   ```
+## Verify Installation
 
-### Option 3: Command Line (Windows)
+### Check Database Exists
 ```bash
-# Navigate to the database directory
-cd d:\Github_repos\Architecture-assignment\Reservation-service\database
-
-# Execute the script
-mysql -u root -p < setup.sql
+psql -U postgres -l
 ```
 
-## Database Schema
+### Connect to Database
+```bash
+psql -U postgres -d reservation_db
+```
 
-### Table: `reservations`
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| id | BIGINT | PRIMARY KEY, AUTO_INCREMENT | Unique reservation identifier |
-| user_id | BIGINT | NOT NULL | Reference to user (from User Service) |
-| stall_id | BIGINT | NOT NULL | Reference to stall (from Stall Service) |
-| created_at | TIMESTAMP | NOT NULL | Timestamp when reservation was created |
-| qr_code_base64 | LONGTEXT | NULL | Base64 encoded QR code image |
-| status | VARCHAR(20) | NOT NULL | Reservation status (CONFIRMED/CANCELLED) |
+### View Tables
+```sql
+\dt
+```
 
-### Indexes
-- `idx_user_id`: Fast lookups by user
-- `idx_stall_id`: Fast lookups by stall
-- `idx_status`: Filter by status
-- `idx_created_at`: Sort by creation date
-- `idx_user_stall`: Composite index for user-stall queries
+### View Table Structure
+```sql
+\d+ reservations
+```
 
-## Updating Database Credentials
+### Exit psql
+```sql
+\q
+```
 
-If you want to use different credentials, update the following file:
-`src/main/resources/application.properties`
+## Table Schema
+
+The `reservations` table has the following structure:
+
+| Column | Type | Constraints |
+|--------|------|-------------|
+| id | BIGSERIAL | PRIMARY KEY |
+| user_id | BIGINT | NOT NULL |
+| stall_id | BIGINT | NOT NULL |
+| created_at | TIMESTAMP | NOT NULL, DEFAULT CURRENT_TIMESTAMP |
+| qr_code_base64 | TEXT | NULL |
+| status | VARCHAR(50) | NOT NULL, DEFAULT 'CONFIRMED' |
+| payment_expires_at | TIMESTAMP | NULL |
+| payment_completed_at | TIMESTAMP | NULL |
+
+**Valid Status Values:**
+- PENDING_PAYMENT
+- CONFIRMED
+- CANCELLED
+- EXPIRED
+
+**Indexes:**
+- idx_user_id (user_id)
+- idx_stall_id (stall_id)
+- idx_status (status)
+- idx_created_at (created_at)
+- idx_payment_expires (payment_expires_at)
+- idx_user_stall (user_id, stall_id)
+- idx_status_stall (status, stall_id)
+
+## Connection Details
+
+Update these in `src/main/resources/application.properties`:
 
 ```properties
-spring.datasource.url=jdbc:mysql://localhost:3306/reservation_db
-spring.datasource.username=your_username
-spring.datasource.password=your_password
+spring.datasource.url=jdbc:postgresql://localhost:5432/reservation_db
+spring.datasource.username=postgres
+spring.datasource.password=postgres
+spring.datasource.driver-class-name=org.postgresql.Driver
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
 ```
 
 ## Troubleshooting
 
-### Connection Issues
-- Ensure MySQL server is running
-- Check that port 3306 is not blocked by firewall
-- Verify username and password in application.properties
+### Issue: "FATAL: database 'reservation_db' does not exist"
+**Solution:** Create the database first using the psql command above.
 
-### Permission Issues
-```sql
--- Grant permissions to user
-GRANT ALL PRIVILEGES ON reservation_db.* TO 'root'@'localhost';
-FLUSH PRIVILEGES;
+### Issue: "FATAL: password authentication failed"
+**Solution:** Verify your PostgreSQL password or reset it:
+```bash
+sudo -u postgres psql
+ALTER USER postgres WITH PASSWORD 'postgres';
 ```
 
-### Reset Database
-```sql
-DROP DATABASE reservation_db;
--- Then run setup.sql again
+### Issue: "Connection refused"
+**Solution:** Ensure PostgreSQL service is running:
+```bash
+# Windows
+services.msc (check postgresql service)
+
+# Linux
+sudo systemctl status postgresql
 ```
 
-## Maintenance Scripts
+## Migration from MySQL
 
-### Clear all data (keep structure)
-```sql
-USE reservation_db;
-TRUNCATE TABLE reservations;
-```
+If you have existing data in MySQL and need to migrate to PostgreSQL, please refer to `POSTGRESQL_MIGRATION.md` in the root directory for detailed migration instructions.
 
-### View recent reservations
+## PostgreSQL Useful Commands
+
 ```sql
-USE reservation_db;
+-- List all databases
+\l
+
+-- Connect to database
+\c reservation_db
+
+-- List all tables
+\dt
+
+-- Describe table structure
+\d+ reservations
+
+-- Show all indexes
+\di
+
+-- View recent reservations
 SELECT * FROM reservations ORDER BY created_at DESC LIMIT 10;
+
+-- Count reservations by status
+SELECT status, COUNT(*) FROM reservations GROUP BY status;
+
+-- Drop database (careful!)
+DROP DATABASE reservation_db;
 ```
 
-### Count reservations by status
-```sql
-USE reservation_db;
-SELECT status, COUNT(*) as count 
-FROM reservations 
-GROUP BY status;
-```
+## Performance Tips
+
+1. **Regular Maintenance:**
+   ```sql
+   VACUUM ANALYZE reservations;
+   ```
+
+2. **Monitor Query Performance:**
+   ```sql
+   EXPLAIN ANALYZE SELECT * FROM reservations WHERE user_id = 1;
+   ```
+
+3. **Check Index Usage:**
+   ```sql
+   SELECT schemaname, tablename, indexname, idx_scan 
+   FROM pg_stat_user_indexes 
+   WHERE tablename = 'reservations';
+   ```
+
+## Additional Resources
+
+- PostgreSQL Documentation: https://www.postgresql.org/docs/
+- pgAdmin Download: https://www.pgadmin.org/download/
+- PostgreSQL Tutorial: https://www.postgresqltutorial.com/

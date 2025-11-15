@@ -36,7 +36,7 @@ public class Reservation {
     private LocalDateTime createdAt;
 
     @Lob
-    @Column(columnDefinition = "LONGTEXT")
+    @Column(columnDefinition = "TEXT")
     private String qrCodeBase64;
 
     @Column(name = "payment_expires_at")

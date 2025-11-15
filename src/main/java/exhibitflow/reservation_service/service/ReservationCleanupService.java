@@ -62,8 +62,15 @@ public class ReservationCleanupService {
                 reservationRepository.save(reservation);
                 
                 // Release the stall
-                stallServiceClient.releaseStall(reservation.getStallId());
-                
+                try {
+                    stallServiceClient.releaseStall(reservation.getStallId());
+                } catch (Exception e) {
+                    logger.error("Failed to release stall {} via Feign client: {}",
+                        reservation.getStallId(),
+                        e.getMessage()
+                    );
+                }
+
                 logger.info("Successfully expired reservation {} and released stall {}", 
                     reservation.getId(), 
                     reservation.getStallId()
