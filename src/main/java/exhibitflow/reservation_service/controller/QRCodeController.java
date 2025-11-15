@@ -3,6 +3,7 @@ package exhibitflow.reservation_service.controller;
 import exhibitflow.reservation_service.dto.ReservationResponse;
 import exhibitflow.reservation_service.service.QRCodeGeneratorService;
 import exhibitflow.reservation_service.service.ReservationService;
+import jakarta.persistence.PostRemove;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -22,6 +23,7 @@ public class QRCodeController {
     
     @Autowired
     private ReservationService reservationService;
+
     
     /**
      * Regenerate QR code for a reservation
