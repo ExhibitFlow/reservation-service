@@ -14,7 +14,7 @@ import java.util.Map;
  * Controller for QR code operations
  */
 @RestController
-@RequestMapping("/api/qrcode")
+@RequestMapping("/api/v1/qrcode")
 public class QRCodeController {
     
     @Autowired
@@ -26,7 +26,7 @@ public class QRCodeController {
     
     /**
      * Regenerate QR code for a reservation
-     * GET /api/qrcode/regenerate/{reservationId}
+     * GET /api/v1/qrcode/regenerate/{reservationId}
      */
     @GetMapping("/regenerate/{reservationId}")
     public ResponseEntity<Map<String, String>> regenerateQRCode(

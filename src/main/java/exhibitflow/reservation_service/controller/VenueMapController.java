@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
  * Provides endpoints to retrieve exhibition venue maps with stall availability
  */
 @RestController
-@RequestMapping("/api/venue")
+@RequestMapping("/api/v1/venue")
 @RequiredArgsConstructor
 @Slf4j
 public class VenueMapController {
@@ -27,16 +27,6 @@ public class VenueMapController {
     public ResponseEntity<VenueMapResponse> getVenueMap() {
         log.info("GET /api/venue/map - Fetching complete venue map");
         VenueMapResponse response = venueMapService.getVenueMap();
-        return ResponseEntity.ok(response);
-    }
-
-    /**
-     * Get venue map for a specific floor
-     */
-    @GetMapping("/map/floor/{floorNumber}")
-    public ResponseEntity<VenueMapResponse> getVenueMapByFloor(@PathVariable Integer floorNumber) {
-        log.info("GET /api/venue/map/floor/{} - Fetching venue map for floor", floorNumber);
-        VenueMapResponse response = venueMapService.getVenueMapByFloor(floorNumber);
         return ResponseEntity.ok(response);
     }
 

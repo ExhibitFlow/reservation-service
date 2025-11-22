@@ -21,7 +21,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -282,7 +281,6 @@ public class ReservationService implements IReservationService {
      * Get all reservations for a specific user
      */
     @Override
-    @Cacheable(value = "reservations", key = "'user_' + #userId")
     public List<ReservationResponse> getUserReservations(Long userId) {
         MDCUtil.setUserId(userId);
         logger.debug("Fetching reservations for user: {}", userId);
@@ -314,7 +312,6 @@ public class ReservationService implements IReservationService {
      * Get all reservations with pagination
      */
     @Override
-    @Cacheable(value = "reservations", key = "'all_' + #pageable.pageNumber + '_' + #pageable.pageSize")
     public PagedResponse<ReservationSummary> getAllReservations(Pageable pageable) {
         logger.debug("Fetching all reservations with pagination: page={}, size={}", 
             pageable.getPageNumber(), pageable.getPageSize());
@@ -340,7 +337,6 @@ public class ReservationService implements IReservationService {
      * Get a specific reservation by ID
      */
     @Override
-    @Cacheable(value = "reservations", key = "'reservation_' + #reservationId")
     public ReservationResponse getReservationById(Long reservationId, Long userId) {
         MDCUtil.setUserId(userId);
         MDCUtil.setReservationId(reservationId);
