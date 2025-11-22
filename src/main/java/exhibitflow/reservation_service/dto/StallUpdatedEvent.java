@@ -8,30 +8,24 @@ import lombok.NoArgsConstructor;
 import java.util.List;
 
 /**
- * DTO for Stall data received from Stall Service
- * Includes spatial data for venue mapping
+ * Event published by Stall Service when a stall is updated
  */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class StallDto {
-    private Long id;
+public class StallUpdatedEvent {
+    private Long stallId;
     private String stallCode;
     private String size;
     private Double price;
-    private Boolean isReserved;
     private String zone;
     private Integer floorNumber;
     private String description;
+    private CoordinateDto location;
+    private List<List<Double>> boundary;
+    private Long timestamp;
     
-    // Spatial data for venue map (received from Stall service)
-    private CoordinateDto location;  // Center point [longitude, latitude]
-    private List<List<Double>> boundary;  // Polygon coordinates [[lng, lat], ...]
-    
-    /**
-     * Coordinate DTO for point locations
-     */
     @Data
     @NoArgsConstructor
     @AllArgsConstructor

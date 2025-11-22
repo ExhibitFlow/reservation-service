@@ -39,4 +39,22 @@ public interface StallServiceClient {
     @PutMapping("/api/stalls/{stallId}/release")
     @CacheEvict(value = "stalls", key = "#stallId")
     StallDto releaseStall(@PathVariable("stallId") Long stallId);
+    
+    /**
+     * Get all stalls (for venue map)
+     */
+    @GetMapping("/api/stalls")
+    java.util.List<StallDto> getAllStalls();
+    
+    /**
+     * Get stalls by floor
+     */
+    @GetMapping("/api/stalls/floor/{floorNumber}")
+    java.util.List<StallDto> getStallsByFloor(@PathVariable("floorNumber") Integer floorNumber);
+    
+    /**
+     * Get stalls by zone
+     */
+    @GetMapping("/api/stalls/zone/{zone}")
+    java.util.List<StallDto> getStallsByZone(@PathVariable("zone") String zone);
 }
