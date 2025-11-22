@@ -45,6 +45,52 @@ services:
     networks:
       - reservation-network
 
+  postgres:
+    image: postgres:16-alpine
+    container_name: reservation-postgres
+    environment:
+      POSTGRES_DB: reservation_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: asd
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./database/setup.sql:/docker-entrypoint-initdb.d/setup.sql
+    networks:
+      - reservation-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  reservation-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: reservation-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+    ports:
+      - "8083:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/reservation_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: asd
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      SERVICES_USER_SERVICE_URL: http://user-service:8081
+      SERVICES_STALL_SERVICE_URL: http://stall-service:8082
+    networks:
+      - reservation-network
+    restart: unless-stopped
+
 networks:
   reservation-network:
     driver: bridge
+
+volumes:
+  postgres-data:
