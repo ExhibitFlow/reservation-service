@@ -5,6 +5,10 @@ import exhibitflow.reservation_service.client.UserServiceClient;
 import exhibitflow.reservation_service.config.ApplicationProperties;
 import exhibitflow.reservation_service.dto.CreateReservationRequest;
 import exhibitflow.reservation_service.dto.PagedResponse;
+import exhibitflow.reservation_service.dto.PaymentCompletedEvent;
+import exhibitflow.reservation_service.dto.PaymentExpiredEvent;
+import exhibitflow.reservation_service.dto.ReservationCancelledEvent;
+import exhibitflow.reservation_service.dto.ReservationCreatedEvent;
 import exhibitflow.reservation_service.dto.ReservationResponse;
 import exhibitflow.reservation_service.dto.ReservationSummary;
 import exhibitflow.reservation_service.dto.StallDto;
@@ -46,6 +50,7 @@ public class ReservationService implements IReservationService {
     private final StallServiceClient stallServiceClient;
     private final QRCodeGeneratorService qrCodeGeneratorService;
     private final ApplicationProperties applicationProperties;
+    private final IKafkaProducerService kafkaProducerService;
 
     @Autowired
     public ReservationService(
@@ -53,12 +58,14 @@ public class ReservationService implements IReservationService {
             UserServiceClient userServiceClient,
             StallServiceClient stallServiceClient,
             QRCodeGeneratorService qrCodeGeneratorService,
-            ApplicationProperties applicationProperties) {
+            ApplicationProperties applicationProperties,
+            IKafkaProducerService kafkaProducerService) {
         this.reservationRepository = reservationRepository;
         this.userServiceClient = userServiceClient;
         this.stallServiceClient = stallServiceClient;
         this.qrCodeGeneratorService = qrCodeGeneratorService;
         this.applicationProperties = applicationProperties;
+        this.kafkaProducerService = kafkaProducerService;
     }
 
     /**
@@ -158,6 +165,21 @@ public class ReservationService implements IReservationService {
             logger.info("Reservation created with payment lock. ID: {}, Expires at: {}", 
                 reservation.getId(), reservation.getPaymentExpiresAt());
 
+            // Publish Kafka event
+            try {
+                ReservationCreatedEvent event = ReservationCreatedEvent.builder()
+                    .reservationId(reservation.getId())
+                    .userId(userId)
+                    .stallId(request.getStallId())
+                    .totalPrice(stall.getPrice())
+                    .createdAt(reservation.getCreatedAt())
+                    .paymentDeadline(reservation.getPaymentExpiresAt())
+                    .build();
+                kafkaProducerService.publishReservationCreated(event);
+            } catch (Exception e) {
+                logger.warn("Failed to publish reservation created event: {}", e.getMessage());
+            }
+
             // Return response WITHOUT QR code (generated after payment)
             return mapToReservationResponse(reservation, user, stall);
         } catch (Exception e) {
@@ -235,6 +257,21 @@ public class ReservationService implements IReservationService {
         }
         
         Reservation updated = reservationRepository.save(reservation);
+        
+        // Publish Kafka event
+        try {
+            PaymentCompletedEvent event = PaymentCompletedEvent.builder()
+                .reservationId(reservationId)
+                .userId(userId)
+                .stallId(reservation.getStallId())
+                .amount(stall.getPrice())
+                .paymentMethod("ONLINE")
+                .paidAt(reservation.getPaymentCompletedAt())
+                .build();
+            kafkaProducerService.publishPaymentCompleted(event);
+        } catch (Exception e) {
+            logger.warn("Failed to publish payment completed event: {}", e.getMessage());
+        }
         
         logger.info("Payment completed successfully for reservation: {}", reservationId);
         
@@ -348,6 +385,20 @@ public class ReservationService implements IReservationService {
             stallServiceClient.releaseStall(reservation.getStallId());
         } catch (Exception e) {
             logger.error("Failed to release stall {}: {}", reservation.getStallId(), e.getMessage());
+        }
+
+        // Publish Kafka event
+        try {
+            ReservationCancelledEvent event = ReservationCancelledEvent.builder()
+                .reservationId(reservationId)
+                .userId(userId)
+                .stallId(reservation.getStallId())
+                .cancellationReason("User requested cancellation")
+                .cancelledAt(LocalDateTime.now())
+                .build();
+            kafkaProducerService.publishReservationCancelled(event);
+        } catch (Exception e) {
+            logger.warn("Failed to publish reservation cancelled event: {}", e.getMessage());
         }
 
         logger.info("Reservation {} cancelled successfully", reservationId);

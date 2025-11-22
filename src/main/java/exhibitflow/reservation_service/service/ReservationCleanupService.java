@@ -1,6 +1,7 @@
 package exhibitflow.reservation_service.service;
 
 import exhibitflow.reservation_service.client.StallServiceClient;
+import exhibitflow.reservation_service.dto.PaymentExpiredEvent;
 import exhibitflow.reservation_service.entity.Reservation;
 import exhibitflow.reservation_service.repository.ReservationRepository;
 import org.slf4j.Logger;
@@ -27,6 +28,9 @@ public class ReservationCleanupService {
 
     @Autowired
     private StallServiceClient stallServiceClient;
+
+    @Autowired
+    private IKafkaProducerService kafkaProducerService;
 
     /**
      * Runs every minute to clean up expired pending payments
@@ -75,6 +79,20 @@ public class ReservationCleanupService {
                     reservation.getId(), 
                     reservation.getStallId()
                 );
+                
+                // Publish Kafka event
+                try {
+                    PaymentExpiredEvent event = PaymentExpiredEvent.builder()
+                        .reservationId(reservation.getId())
+                        .userId(reservation.getUserId())
+                        .stallId(reservation.getStallId())
+                        .paymentDeadline(reservation.getPaymentExpiresAt())
+                        .expiredAt(now)
+                        .build();
+                    kafkaProducerService.publishPaymentExpired(event);
+                } catch (Exception e) {
+                    logger.warn("Failed to publish payment expired event: {}", e.getMessage());
+                }
                 
             } catch (Exception e) {
                 logger.error("Failed to expire reservation {} for stall {}: {}", 

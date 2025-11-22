@@ -19,6 +19,12 @@ A **microservices-based** backend service for managing stall reservations at the
   - RESTful communication with QRCode Service for QR code generation
   - Service-to-service coordination
   
+- **Event-Driven Architecture**
+  - **Kafka message broker** for asynchronous event publishing
+  - Real-time event streaming for reservation lifecycle events
+  - Decoupled microservices communication
+  - Event topics: reservation.created, payment.completed, reservation.cancelled, payment.expired
+  
 - **Distributed Data Management**
   - Stores reservation records with user and stall references
   - Fetches user and stall details from respective services
@@ -64,9 +70,10 @@ This service is part of a distributed microservices system:
 - **Backend Framework:** Spring Boot 3.5.7
 - **Java Version:** 21
 - **Database:** MySQL with Spring Data JPA
+- **Message Broker:** Apache Kafka (via Docker)
 - **Inter-service Communication:** RestTemplate
 - **Build Tool:** Maven
-- **Additional Libraries:** Lombok, Spring Validation
+- **Additional Libraries:** Lombok, Spring Validation, Spring Kafka
 
 ### Database Schema
 
@@ -91,6 +98,7 @@ reservations
 - Java 21 or higher
 - MySQL 8.0 or higher
 - Maven 3.6+
+- **Docker & Docker Compose** (for Kafka)
 - **Running instances of dependent services:**
   - User Service (Port 8081)
   - Stall Service (Port 8082)
@@ -123,14 +131,35 @@ spring.datasource.password=your_mysql_password
 services.user-service.url=http://localhost:8081
 services.stall-service.url=http://localhost:8082
 services.qrcode-service.url=http://localhost:8083
+
+# Kafka Configuration (uses Docker)
+spring.kafka.bootstrap-servers=localhost:9092
 ```
 
-4. **Build the project**
+4. **Start Kafka using Docker**
+```bash
+# Windows
+start-kafka.bat
+
+# Linux/Mac
+./start-kafka.sh
+```
+
+Or manually:
+```bash
+docker-compose up -d
+```
+
+Verify Kafka is running:
+- Kafka UI: `http://localhost:8090`
+- Kafka Broker: `localhost:9092`
+
+5. **Build the project**
 ```bash
 ./mvnw clean install
 ```
 
-5. **Run the application**
+6. **Run the application**
 ```bash
 ./mvnw spring-boot:run
 ```
@@ -144,8 +173,19 @@ The application will start on `http://localhost:8080`
 1. **User Service** - Manages user data and authentication
 2. **Stall Service** - Manages stall information and availability
 3. **QRCode Service** - Generates QR codes for reservations
+4. **Kafka** - Message broker for event-driven architecture (Docker)
 
 Ensure all dependent services are up and running before starting the Reservation Service.
+
+### Kafka Event Topics
+
+The service publishes events to the following Kafka topics:
+- `reservation.created` - When a new reservation is created
+- `reservation.payment.completed` - When payment is completed
+- `reservation.cancelled` - When a reservation is cancelled
+- `reservation.payment.expired` - When payment deadline expires
+
+See [KAFKA_INTEGRATION.md](KAFKA_INTEGRATION.md) for detailed Kafka documentation.
 
 ## 📚 API Documentation
 
