@@ -25,6 +25,7 @@ public class StallEventConsumer {
     /**
      * Handle stall created events
      * Clears the stalls cache to ensure fresh data on next fetch
+     * Exceptions are handled by the configured error handler with retry and DLQ
      */
     @KafkaListener(
         topics = "${kafka.topics.stall-created}",
@@ -39,23 +40,17 @@ public class StallEventConsumer {
         log.info("Received StallCreatedEvent from topic: {} | Offset: {} | StallId: {} | StallCode: {}",
                 topic, offset, event.getStallId(), event.getStallCode());
         
-        try {
-            // Clear stalls cache to ensure venue map fetches latest data
-            clearStallsCache();
-            
-            log.info("Successfully processed StallCreatedEvent for stall: {} ({})",
-                    event.getStallCode(), event.getStallId());
-                    
-        } catch (Exception e) {
-            log.error("Error processing StallCreatedEvent for stall: {} | Error: {}",
-                    event.getStallId(), e.getMessage(), e);
-            // In production, consider implementing retry logic or DLQ
-        }
+        // Clear stalls cache to ensure venue map fetches latest data
+        clearStallsCache();
+        
+        log.info("Successfully processed StallCreatedEvent for stall: {} ({})",
+                event.getStallCode(), event.getStallId());
     }
 
     /**
      * Handle stall updated events
-     * Clears the stalls cache to ensure fresh data on next fetch
+     * Clears specific stall from cache to ensure fresh data on next fetch
+     * Exceptions are handled by the configured error handler with retry and DLQ
      */
     @KafkaListener(
         topics = "${kafka.topics.stall-updated}",
@@ -70,21 +65,15 @@ public class StallEventConsumer {
         log.info("Received StallUpdatedEvent from topic: {} | Offset: {} | StallId: {} | StallCode: {}",
                 topic, offset, event.getStallId(), event.getStallCode());
         
-        try {
-            // Clear specific stall from cache
-            var stallsCache = cacheManager.getCache("stalls");
-            if (stallsCache != null) {
-                stallsCache.evict(event.getStallId());
-                log.debug("Evicted stall {} from cache", event.getStallId());
-            }
-            
-            log.info("Successfully processed StallUpdatedEvent for stall: {} ({})",
-                    event.getStallCode(), event.getStallId());
-                    
-        } catch (Exception e) {
-            log.error("Error processing StallUpdatedEvent for stall: {} | Error: {}",
-                    event.getStallId(), e.getMessage(), e);
+        // Clear specific stall from cache
+        var stallsCache = cacheManager.getCache("stalls");
+        if (stallsCache != null) {
+            stallsCache.evict(event.getStallId());
+            log.debug("Evicted stall {} from cache", event.getStallId());
         }
+        
+        log.info("Successfully processed StallUpdatedEvent for stall: {} ({})",
+                event.getStallCode(), event.getStallId());
     }
 
     /**
