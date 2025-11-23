@@ -17,6 +17,8 @@ import java.util.Map;
 @RequestMapping("/api/v1/qrcode")
 public class QRCodeController {
     
+    private static final String USER_ID_HEADER = "X-User-Id";
+    
     @Autowired
     private QRCodeGeneratorService qrCodeGeneratorService;
     
@@ -31,7 +33,7 @@ public class QRCodeController {
     @GetMapping("/regenerate/{reservationId}")
     public ResponseEntity<Map<String, String>> regenerateQRCode(
             @PathVariable Long reservationId,
-            @RequestHeader("X-User-Id") Long userId) {
+            @RequestHeader(USER_ID_HEADER) Long userId) {
         
         // Get reservation details
         ReservationResponse reservation = reservationService.getUserReservations(userId)

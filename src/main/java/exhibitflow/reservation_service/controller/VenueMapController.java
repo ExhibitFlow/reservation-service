@@ -25,9 +25,8 @@ public class VenueMapController {
      */
     @GetMapping("/map")
     public ResponseEntity<VenueMapResponse> getVenueMap() {
-        log.info("GET /api/venue/map - Fetching complete venue map");
-        VenueMapResponse response = venueMapService.getVenueMap();
-        return ResponseEntity.ok(response);
+        log.info("Fetching complete venue map");
+        return buildResponse(venueMapService::getVenueMap);
     }
 
     /**
@@ -35,9 +34,8 @@ public class VenueMapController {
      */
     @GetMapping("/map/code/{code}")
     public ResponseEntity<VenueMapResponse> getVenueMapBycode(@PathVariable String code) {
-        log.info("GET /api/venue/map/code/{} - Fetching venue map for code", code);
-        VenueMapResponse response = venueMapService.getVenueMapByCode(code);
-        return ResponseEntity.ok(response);
+        log.info("Fetching venue map for code: {}", code);
+        return buildResponse(() -> venueMapService.getVenueMapByCode(code));
     }
 
     /**
@@ -45,8 +43,14 @@ public class VenueMapController {
      */
     @GetMapping("/map/available")
     public ResponseEntity<VenueMapResponse> getAvailableStallsMap() {
-        log.info("GET /api/venue/map/available - Fetching available stalls map");
-        VenueMapResponse response = venueMapService.getAvailableStallsMap();
-        return ResponseEntity.ok(response);
+        log.info("Fetching available stalls map");
+        return buildResponse(venueMapService::getAvailableStallsMap);
+    }
+
+    /**
+     * Helper method to build ResponseEntity from service call
+     */
+    private ResponseEntity<VenueMapResponse> buildResponse(java.util.function.Supplier<VenueMapResponse> serviceCall) {
+        return ResponseEntity.ok(serviceCall.get());
     }
 }

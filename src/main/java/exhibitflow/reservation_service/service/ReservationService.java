@@ -78,10 +78,7 @@ public class ReservationService implements IReservationService {
         logger.info("Creating reservation with payment lock for user: {} and stall: {}", userId, request.getStallId());
 
         // Validate user exists via User Service
-        UserDto user = userServiceClient.getUserById(userId);
-        if (user == null) {
-            throw new ResourceNotFoundException("User not found with ID: " + userId);
-        }
+        UserDto user = validateUser(userId);
 
         // Check if user has reached reservation limit (count CONFIRMED and PENDING_PAYMENT reservations)
         int maxReservations = applicationProperties.getReservation().getMaxReservationsPerUser();
@@ -96,44 +93,9 @@ public class ReservationService implements IReservationService {
             );
         }
 
-        // Get stall details from Stall Service
-        StallDto stall = stallServiceClient.getStallById(request.getStallId());
-        if (stall == null) {
-            throw new ResourceNotFoundException("Stall not found with ID: " + request.getStallId());
-        }
-
-        // Check if stall is already reserved
-        if (stall.getIsReserved()) {
-            logger.error("Stall {} is already reserved", stall.getStallCode());
-            throw new StallNotAvailableException(
-                String.format("Stall %s is already reserved", stall.getStallCode())
-            );
-        }
-
-        // Check if there's an existing PENDING_PAYMENT reservation for this stall
-        Optional<Reservation> existingPending = reservationRepository
-            .findByStallIdAndStatus(request.getStallId(), Reservation.ReservationStatus.PENDING_PAYMENT);
-        
-        if (existingPending.isPresent()) {
-            Reservation pending = existingPending.get();
-            if (pending.getPaymentExpiresAt().isAfter(LocalDateTime.now())) {
-                logger.error("Stall {} is temporarily locked for payment until {}", 
-                    stall.getStallCode(), pending.getPaymentExpiresAt());
-                throw new StallNotAvailableException(
-                    String.format("Stall %s is temporarily locked for payment. Please try again later.", stall.getStallCode())
-                );
-            } else {
-                // Expired - auto-cancel it
-                logger.info("Auto-expiring reservation {} for stall {}", pending.getId(), request.getStallId());
-                pending.setStatus(Reservation.ReservationStatus.EXPIRED);
-                reservationRepository.save(pending);
-                try {
-                    stallServiceClient.releaseStall(request.getStallId());
-                } catch (Exception e) {
-                    logger.warn("Failed to release stall {}: {}", request.getStallId(), e.getMessage());
-                }
-            }
-        }
+        // Get stall details and check availability
+        StallDto stall = validateStall(request.getStallId());
+        checkStallAvailability(stall, request.getStallId());
 
         // Temporarily reserve the stall via Stall Service
         try {
@@ -157,36 +119,30 @@ public class ReservationService implements IReservationService {
                 .build();
 
             // Save reservation to get ID
-            reservation = reservationRepository.save(reservation);
+            Reservation savedReservation = reservationRepository.save(reservation);
 
             logger.info("Reservation created with payment lock. ID: {}, Expires at: {}", 
-                reservation.getId(), reservation.getPaymentExpiresAt());
+                savedReservation.getId(), savedReservation.getPaymentExpiresAt());
 
             // Publish Kafka event
-            try {
+            publishEvent(() -> {
                 ReservationCreatedEvent event = ReservationCreatedEvent.builder()
-                    .reservationId(reservation.getId())
+                    .reservationId(savedReservation.getId())
                     .userId(userId)
                     .stallId(request.getStallId())
                     .totalPrice(stall.getPrice())
-                    .createdAt(reservation.getCreatedAt())
-                    .paymentDeadline(reservation.getPaymentExpiresAt())
+                    .createdAt(savedReservation.getCreatedAt())
+                    .paymentDeadline(savedReservation.getPaymentExpiresAt())
                     .build();
                 kafkaProducerService.publishReservationCreated(event);
-            } catch (Exception e) {
-                logger.warn("Failed to publish reservation created event: {}", e.getMessage());
-            }
+            }, "reservation created");
 
             // Return response WITHOUT QR code (generated after payment)
-            return mapToReservationResponse(reservation, user, stall);
+            return mapToReservationResponse(savedReservation, user, stall);
         } catch (Exception e) {
             // Rollback: Release the stall if reservation creation fails
             logger.error("Failed to create reservation, releasing stall: {}", e.getMessage());
-            try {
-                stallServiceClient.releaseStall(request.getStallId());
-            } catch (Exception ex) {
-                logger.error("Failed to release stall during rollback: {}", ex.getMessage());
-            }
+            releaseStall(request.getStallId());
             throw e;
         }
     }
@@ -222,11 +178,7 @@ public class ReservationService implements IReservationService {
             logger.error("Payment window expired for reservation {}", reservationId);
             reservation.setStatus(Reservation.ReservationStatus.EXPIRED);
             reservationRepository.save(reservation);
-            try {
-                stallServiceClient.releaseStall(reservation.getStallId());
-            } catch (Exception e) {
-                logger.warn("Failed to release stall {}: {}", reservation.getStallId(), e.getMessage());
-            }
+            releaseStall(reservation.getStallId());
             throw new PaymentExpiredException("Payment window has expired. Please create a new reservation.");
         }
         
@@ -255,7 +207,7 @@ public class ReservationService implements IReservationService {
         Reservation updated = reservationRepository.save(reservation);
         
         // Publish Kafka event
-        try {
+        publishEvent(() -> {
             PaymentCompletedEvent event = PaymentCompletedEvent.builder()
                 .reservationId(reservationId)
                 .userId(userId)
@@ -265,9 +217,7 @@ public class ReservationService implements IReservationService {
                 .paidAt(reservation.getPaymentCompletedAt())
                 .build();
             kafkaProducerService.publishPaymentCompleted(event);
-        } catch (Exception e) {
-            logger.warn("Failed to publish payment completed event: {}", e.getMessage());
-        }
+        }, "payment completed");
         
         logger.info("Payment completed successfully for reservation: {}", reservationId);
         
@@ -283,10 +233,7 @@ public class ReservationService implements IReservationService {
         logger.debug("Fetching reservations for user: {}", userId);
         
         // Validate user exists
-        UserDto user = userServiceClient.getUserById(userId);
-        if (user == null) {
-            throw new ResourceNotFoundException("User not found with ID: " + userId);
-        }
+        validateUser(userId);
 
         List<Reservation> reservations = reservationRepository.findByUserId(userId);
         return reservations.stream()
@@ -373,14 +320,10 @@ public class ReservationService implements IReservationService {
         reservationRepository.save(reservation);
 
         // Release the stall via Stall Service
-        try {
-            stallServiceClient.releaseStall(reservation.getStallId());
-        } catch (Exception e) {
-            logger.error("Failed to release stall {}: {}", reservation.getStallId(), e.getMessage());
-        }
+        releaseStall(reservation.getStallId());
 
         // Publish Kafka event
-        try {
+        publishEvent(() -> {
             ReservationCancelledEvent event = ReservationCancelledEvent.builder()
                 .reservationId(reservationId)
                 .userId(userId)
@@ -389,9 +332,7 @@ public class ReservationService implements IReservationService {
                 .cancelledAt(LocalDateTime.now())
                 .build();
             kafkaProducerService.publishReservationCancelled(event);
-        } catch (Exception e) {
-            logger.warn("Failed to publish reservation cancelled event: {}", e.getMessage());
-        }
+        }, "reservation cancelled");
 
         logger.info("Reservation {} cancelled successfully", reservationId);
     }
@@ -431,40 +372,10 @@ public class ReservationService implements IReservationService {
         MDCUtil.setUserId(userId);
         logger.info("Holding stall {} for user: {}", stallId, userId);
 
-        // Validate user exists via User Service
-        UserDto user = userServiceClient.getUserById(userId);
-        if (user == null) {
-            throw new ResourceNotFoundException("User not found with ID: " + userId);
-        }
-
-        // Get stall details from Stall Service
-        StallDto stall = stallServiceClient.getStallById(stallId);
-        if (stall == null) {
-            throw new ResourceNotFoundException("Stall not found with ID: " + stallId);
-        }
-
-        // Check if stall is already reserved
-        if (stall.getIsReserved()) {
-            logger.error("Stall {} is already reserved", stall.getStallCode());
-            throw new StallNotAvailableException(
-                String.format("Stall %s is already reserved", stall.getStallCode())
-            );
-        }
-
-        // Check if there's an existing PENDING_PAYMENT reservation for this stall
-        Optional<Reservation> existingPending = reservationRepository
-            .findByStallIdAndStatus(stallId, Reservation.ReservationStatus.PENDING_PAYMENT);
-        
-        if (existingPending.isPresent()) {
-            Reservation pending = existingPending.get();
-            if (pending.getPaymentExpiresAt().isAfter(LocalDateTime.now())) {
-                logger.error("Stall {} is temporarily locked for payment until {}", 
-                    stall.getStallCode(), pending.getPaymentExpiresAt());
-                throw new StallNotAvailableException(
-                    String.format("Stall %s is temporarily locked for payment. Please try again later.", stall.getStallCode())
-                );
-            }
-        }
+        // Validate user exists and stall is available
+        validateUser(userId);
+        StallDto stall = validateStall(stallId);
+        checkStallAvailability(stall, stallId);
 
         // Hold the stall via Stall Service
         try {
@@ -544,6 +455,84 @@ public class ReservationService implements IReservationService {
                 .status(reservation.getStatus().name())
                 .createdAt(reservation.getCreatedAt().format(DATE_TIME_FORMATTER))
                 .build();
+        }
+    }
+
+    /**
+     * Helper method to publish Kafka events with error handling
+     */
+    private void publishEvent(Runnable eventPublisher, String eventType) {
+        try {
+            eventPublisher.run();
+        } catch (Exception e) {
+            logger.warn("Failed to publish {} event: {}", eventType, e.getMessage());
+        }
+    }
+
+    /**
+     * Helper method to release a stall with error handling
+     */
+    private void releaseStall(Long stallId) {
+        try {
+            stallServiceClient.releaseStall(stallId);
+        } catch (Exception e) {
+            logger.error("Failed to release stall {}: {}", stallId, e.getMessage());
+        }
+    }
+
+    /**
+     * Helper method to validate user exists
+     */
+    private UserDto validateUser(Long userId) {
+        UserDto user = userServiceClient.getUserById(userId);
+        if (user == null) {
+            throw new ResourceNotFoundException("User not found with ID: " + userId);
+        }
+        return user;
+    }
+
+    /**
+     * Helper method to validate and get stall details
+     */
+    private StallDto validateStall(Long stallId) {
+        StallDto stall = stallServiceClient.getStallById(stallId);
+        if (stall == null) {
+            throw new ResourceNotFoundException("Stall not found with ID: " + stallId);
+        }
+        return stall;
+    }
+
+    /**
+     * Helper method to check stall availability
+     */
+    private void checkStallAvailability(StallDto stall, Long stallId) {
+        // Check if stall is already reserved
+        if (stall.getIsReserved()) {
+            logger.error("Stall {} is already reserved", stall.getStallCode());
+            throw new StallNotAvailableException(
+                String.format("Stall %s is already reserved", stall.getStallCode())
+            );
+        }
+
+        // Check if there's an existing PENDING_PAYMENT reservation for this stall
+        Optional<Reservation> existingPending = reservationRepository
+            .findByStallIdAndStatus(stallId, Reservation.ReservationStatus.PENDING_PAYMENT);
+        
+        if (existingPending.isPresent()) {
+            Reservation pending = existingPending.get();
+            if (pending.getPaymentExpiresAt().isAfter(LocalDateTime.now())) {
+                logger.error("Stall {} is temporarily locked for payment until {}", 
+                    stall.getStallCode(), pending.getPaymentExpiresAt());
+                throw new StallNotAvailableException(
+                    String.format("Stall %s is temporarily locked for payment. Please try again later.", stall.getStallCode())
+                );
+            } else {
+                // Expired - auto-cancel it
+                logger.info("Auto-expiring reservation {} for stall {}", pending.getId(), stallId);
+                pending.setStatus(Reservation.ReservationStatus.EXPIRED);
+                reservationRepository.save(pending);
+                releaseStall(stallId);
+            }
         }
     }
 }

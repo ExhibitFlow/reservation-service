@@ -27,15 +27,15 @@ public class KafkaConfig {
     @Value("${kafka.topics.payment-expired}")
     private String paymentExpiredTopic;
 
+    private static final int DEFAULT_PARTITIONS = 3;
+    private static final int DEFAULT_REPLICAS = 1;
+
     /**
      * Topic for reservation created events.
      */
     @Bean
     public NewTopic reservationCreatedTopic() {
-        return TopicBuilder.name(reservationCreatedTopic)
-                .partitions(3)
-                .replicas(1)
-                .build();
+        return createTopic(reservationCreatedTopic);
     }
 
     /**
@@ -43,10 +43,7 @@ public class KafkaConfig {
      */
     @Bean
     public NewTopic reservationUpdatedTopic() {
-        return TopicBuilder.name(reservationUpdatedTopic)
-                .partitions(3)
-                .replicas(1)
-                .build();
+        return createTopic(reservationUpdatedTopic);
     }
 
     /**
@@ -54,10 +51,7 @@ public class KafkaConfig {
      */
     @Bean
     public NewTopic reservationCancelledTopic() {
-        return TopicBuilder.name(reservationCancelledTopic)
-                .partitions(3)
-                .replicas(1)
-                .build();
+        return createTopic(reservationCancelledTopic);
     }
 
     /**
@@ -65,10 +59,7 @@ public class KafkaConfig {
      */
     @Bean
     public NewTopic paymentCompletedTopic() {
-        return TopicBuilder.name(paymentCompletedTopic)
-                .partitions(3)
-                .replicas(1)
-                .build();
+        return createTopic(paymentCompletedTopic);
     }
 
     /**
@@ -76,9 +67,16 @@ public class KafkaConfig {
      */
     @Bean
     public NewTopic paymentExpiredTopic() {
-        return TopicBuilder.name(paymentExpiredTopic)
-                .partitions(3)
-                .replicas(1)
+        return createTopic(paymentExpiredTopic);
+    }
+
+    /**
+     * Creates a Kafka topic with default partitions and replicas.
+     */
+    private NewTopic createTopic(String topicName) {
+        return TopicBuilder.name(topicName)
+                .partitions(DEFAULT_PARTITIONS)
+                .replicas(DEFAULT_REPLICAS)
                 .build();
     }
 }

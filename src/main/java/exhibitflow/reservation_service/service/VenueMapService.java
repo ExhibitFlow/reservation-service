@@ -34,22 +34,8 @@ public class VenueMapService {
     public VenueMapResponse getVenueMap() {
         log.info("Fetching venue map with all stalls from Stall service");
         
-        // Fetch all stalls from Stall service
         List<StallDto> stalls = stallServiceClient.getAllStalls();
-        
-        // Get reserved stall IDs from local reservations
-        Set<Long> reservedStallIds = getReservedStallIds();
-        
-        // Convert to map DTOs and update reservation status
-        List<StallMapDto> stallMapDtos = stalls.stream()
-                .map(stall -> convertToStallMapDto(stall, reservedStallIds.contains(stall.getId())))
-                .collect(Collectors.toList());
-        
-        return VenueMapResponse.builder()
-                .stalls(stallMapDtos)
-                .bounds(calculateMapBounds(stalls))
-                .statistics(calculateStatistics(stalls, reservedStallIds))
-                .build();
+        return buildVenueMapResponse(stalls);
     }
 
     /**
@@ -60,17 +46,7 @@ public class VenueMapService {
         log.info("Fetching venue map for code: {}", code);
         
         List<StallDto> stalls = stallServiceClient.getStallsByCode(code);
-        Set<Long> reservedStallIds = getReservedStallIds();
-        
-        List<StallMapDto> stallMapDtos = stalls.stream()
-                .map(stall -> convertToStallMapDto(stall, reservedStallIds.contains(stall.getId())))
-                .collect(Collectors.toList());
-        
-        return VenueMapResponse.builder()
-                .stalls(stallMapDtos)
-                .bounds(calculateMapBounds(stalls))
-                .statistics(calculateStatistics(stalls, reservedStallIds))
-                .build();
+        return buildVenueMapResponse(stalls);
     }
 
     /**
@@ -84,17 +60,27 @@ public class VenueMapService {
         Set<Long> reservedStallIds = getReservedStallIds();
         
         // Filter to only available stalls
-        List<StallMapDto> stallMapDtos = allStalls.stream()
+        List<StallDto> availableStalls = allStalls.stream()
                 .filter(stall -> !reservedStallIds.contains(stall.getId()))
-                .map(stall -> convertToStallMapDto(stall, false))
+                .collect(Collectors.toList());
+        
+        return buildVenueMapResponse(availableStalls);
+    }
+
+    /**
+     * Build VenueMapResponse from stall list
+     */
+    private VenueMapResponse buildVenueMapResponse(List<StallDto> stalls) {
+        Set<Long> reservedStallIds = getReservedStallIds();
+        
+        List<StallMapDto> stallMapDtos = stalls.stream()
+                .map(stall -> convertToStallMapDto(stall, reservedStallIds.contains(stall.getId())))
                 .collect(Collectors.toList());
         
         return VenueMapResponse.builder()
                 .stalls(stallMapDtos)
-                .bounds(calculateMapBounds(allStalls.stream()
-                        .filter(s -> !reservedStallIds.contains(s.getId()))
-                        .collect(Collectors.toList())))
-                .statistics(calculateStatistics(allStalls, reservedStallIds))
+                .bounds(calculateMapBounds(stalls))
+                .statistics(calculateStatistics(stalls, reservedStallIds))
                 .build();
     }
 
