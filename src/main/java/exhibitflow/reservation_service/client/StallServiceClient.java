@@ -51,7 +51,7 @@ public interface StallServiceClient {
     /**
      * Get all stalls (for venue map)
      */
-    @GetMapping("")
+    @GetMapping
     List<StallDto> getAllStalls();
     
 

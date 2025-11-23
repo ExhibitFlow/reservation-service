@@ -36,7 +36,7 @@ public class ReservationCleanupService {
      * Runs every minute to clean up expired pending payments
      * Releases stalls and marks reservations as EXPIRED
      */
-    @Scheduled(fixedRate = 60000) // Every 60 seconds
+    @Scheduled(fixedRateString = "${reservation.cleanup.fixed-rate-ms}")
     @Transactional
     public void cleanupExpiredReservations() {
         LocalDateTime now = LocalDateTime.now();

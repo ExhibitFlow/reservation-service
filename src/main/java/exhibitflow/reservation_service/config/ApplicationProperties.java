@@ -38,26 +38,26 @@ public class ApplicationProperties {
     @Data
     public static class ReservationSettings {
         @Min(1)
-        private int maxReservationsPerUser = 3;
+        private int maxReservationsPerUser;
 
         @Min(1)
-        private int paymentLockMinutes = 5;
+        private int paymentLockMinutes;
     }
 
     @Data
     public static class QRCodeSettings {
         @Min(100)
-        private int width = 300;
+        private int width;
 
         @Min(100)
-        private int height = 300;
+        private int height;
 
-        private String errorCorrectionLevel = "H";
+        private String errorCorrectionLevel;
     }
 
     @Data
     public static class CleanupSettings {
         @Min(1000)
-        private long fixedRateMs = 60000; // 1 minute
+        private long fixedRateMs;
     }
 }
