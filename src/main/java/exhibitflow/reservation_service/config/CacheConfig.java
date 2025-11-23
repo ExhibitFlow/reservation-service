@@ -11,23 +11,20 @@ import java.util.Arrays;
 
 /**
  * Cache configuration for frequently accessed data
- * Uses in-memory caching with Caffeine for better performance
+ * Uses in-memory caching for user data only
+ * Stall availability and reservation status are not cached to ensure real-time accuracy
  */
 @Configuration
 @EnableCaching
 public class CacheConfig {
 
     public static final String USER_CACHE = "users";
-    public static final String STALL_CACHE = "stalls";
-    public static final String RESERVATION_CACHE = "reservations";
 
     @Bean
     public CacheManager cacheManager() {
         SimpleCacheManager cacheManager = new SimpleCacheManager();
         cacheManager.setCaches(Arrays.asList(
-            new ConcurrentMapCache(USER_CACHE),
-            new ConcurrentMapCache(STALL_CACHE),
-            new ConcurrentMapCache(RESERVATION_CACHE)
+            new ConcurrentMapCache(USER_CACHE)
         ));
         return cacheManager;
     }

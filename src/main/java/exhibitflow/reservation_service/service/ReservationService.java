@@ -20,7 +20,6 @@ import exhibitflow.reservation_service.util.MDCUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -74,7 +73,6 @@ public class ReservationService implements IReservationService {
      */
     @Override
     @Transactional
-    @CacheEvict(value = "reservations", allEntries = true)
     public ReservationResponse createReservation(CreateReservationRequest request, Long userId) {
         MDCUtil.setUserId(userId);
         logger.info("Creating reservation with payment lock for user: {} and stall: {}", userId, request.getStallId());
@@ -199,7 +197,6 @@ public class ReservationService implements IReservationService {
      */
     @Override
     @Transactional
-    @CacheEvict(value = "reservations", allEntries = true)
     public ReservationResponse completePayment(Long reservationId, Long userId) {
         MDCUtil.setUserId(userId);
         MDCUtil.setReservationId(reservationId);
@@ -358,7 +355,6 @@ public class ReservationService implements IReservationService {
      */
     @Override
     @Transactional
-    @CacheEvict(value = "reservations", allEntries = true)
     public void cancelReservation(Long reservationId, Long userId) {
         MDCUtil.setUserId(userId);
         MDCUtil.setReservationId(reservationId);
