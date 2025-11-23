@@ -65,28 +65,28 @@ services:
       timeout: 5s
       retries: 5
 
-  reservation-service:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: reservation-service
-    depends_on:
-      postgres:
-        condition: service_healthy
-      kafka:
-        condition: service_started
-    ports:
-      - "8083:8080"
-    environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/reservation_db
-      SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: asd
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
-      SERVICES_USER_SERVICE_URL: http://user-service:8081
-      SERVICES_STALL_SERVICE_URL: http://stall-service:8082
-    networks:
-      - reservation-network
-    restart: unless-stopped
+  # reservation-service:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   container_name: reservation-service
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     kafka:
+  #       condition: service_started
+  #   ports:
+  #     - "8083:8080"
+  #   environment:
+  #     SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/reservation_db
+  #     SPRING_DATASOURCE_USERNAME: postgres
+  #     SPRING_DATASOURCE_PASSWORD: asd
+  #     SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+  #     SERVICES_USER_SERVICE_URL: http://user-service:8081
+  #     SERVICES_STALL_SERVICE_URL: http://stall-service:8082
+  #   networks:
+  #     - reservation-network
+  #   restart: unless-stopped
 
 networks:
   reservation-network:
