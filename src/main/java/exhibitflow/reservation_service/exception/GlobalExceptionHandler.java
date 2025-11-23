@@ -62,12 +62,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleStallNotAvailable(StallNotAvailableException ex) {
         logger.error("Stall not available: {}", ex.getMessage());
         ErrorResponse error = ErrorResponse.builder()
-                .status(HttpStatus.BAD_REQUEST.value())
+                .status(HttpStatus.CONFLICT.value())
                 .message(ex.getMessage())
                 .error("Stall Not Available")
                 .timestamp(System.currentTimeMillis())
                 .build();
-        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+        return new ResponseEntity<>(error, HttpStatus.CONFLICT);
     }
 
     @ExceptionHandler(PaymentExpiredException.class)
@@ -96,14 +96,14 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(UnauthorizedException.class)
     public ResponseEntity<ErrorResponse> handleUnauthorized(UnauthorizedException ex) {
-        logger.error("Unauthorized: {}", ex.getMessage());
+        logger.error("Forbidden: {}", ex.getMessage());
         ErrorResponse error = ErrorResponse.builder()
-                .status(HttpStatus.UNAUTHORIZED.value())
+                .status(HttpStatus.FORBIDDEN.value())
                 .message(ex.getMessage())
-                .error("Unauthorized")
+                .error("Forbidden")
                 .timestamp(System.currentTimeMillis())
                 .build();
-        return new ResponseEntity<>(error, HttpStatus.UNAUTHORIZED);
+        return new ResponseEntity<>(error, HttpStatus.FORBIDDEN);
     }
 
     @ExceptionHandler(ExternalServiceException.class)
@@ -119,15 +119,38 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<Map<String, String>> handleValidationExceptions(MethodArgumentNotValidException ex) {
+    public ResponseEntity<ErrorResponse> handleValidationExceptions(MethodArgumentNotValidException ex) {
         logger.error("Validation error: {}", ex.getMessage());
-        Map<String, String> errors = new HashMap<>();
+        Map<String, String> fieldErrors = new HashMap<>();
         ex.getBindingResult().getAllErrors().forEach((error) -> {
             String fieldName = ((FieldError) error).getField();
             String errorMessage = error.getDefaultMessage();
-            errors.put(fieldName, errorMessage);
+            fieldErrors.put(fieldName, errorMessage);
         });
-        return new ResponseEntity<>(errors, HttpStatus.BAD_REQUEST);
+        
+        // Build a comprehensive error message from all field errors
+        String message = "Validation failed for fields: " + String.join(", ", fieldErrors.keySet());
+        
+        ErrorResponse error = ErrorResponse.builder()
+                .status(HttpStatus.BAD_REQUEST.value())
+                .message(message)
+                .error("Validation Error")
+                .timestamp(System.currentTimeMillis())
+                .details(fieldErrors)
+                .build();
+        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalArgument(IllegalArgumentException ex) {
+        logger.error("Invalid argument: {}", ex.getMessage());
+        ErrorResponse error = ErrorResponse.builder()
+                .status(HttpStatus.BAD_REQUEST.value())
+                .message(ex.getMessage())
+                .error("Invalid Argument")
+                .timestamp(System.currentTimeMillis())
+                .build();
+        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(Exception.class)
