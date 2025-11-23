@@ -1,5 +1,6 @@
 package exhibitflow.reservation_service.controller;
 
+import exhibitflow.reservation_service.constants.HeaderConstants;
 import exhibitflow.reservation_service.dto.CreateReservationRequest;
 import exhibitflow.reservation_service.dto.PagedResponse;
 import exhibitflow.reservation_service.dto.ReservationResponse;
@@ -28,7 +29,6 @@ import java.util.List;
 public class ReservationController {
 
     private static final Logger logger = LoggerFactory.getLogger(ReservationController.class);
-    private static final String USER_ID_HEADER = "X-User-Id";
 
     private final ReservationService reservationService;
 
@@ -43,7 +43,7 @@ public class ReservationController {
     @PostMapping
     public ResponseEntity<ReservationResponse> createReservation(
             @Valid @RequestBody CreateReservationRequest request,
-            @RequestHeader(value = USER_ID_HEADER, required = true) Long userId
+            @RequestHeader(value = HeaderConstants.USER_ID, required = true) Long userId
     ) {
         logger.info("Reservation request received for user: {}", userId);
         ReservationResponse response = reservationService.createReservation(request, userId);
@@ -57,7 +57,7 @@ public class ReservationController {
     @PostMapping("/{reservationId}/complete-payment")
     public ResponseEntity<ReservationResponse> completePayment(
             @PathVariable Long reservationId,
-            @RequestHeader(value = USER_ID_HEADER, required = true) Long userId
+            @RequestHeader(value = HeaderConstants.USER_ID, required = true) Long userId
     ) {
         logger.info("Payment completion request for reservation: {} by user: {}", reservationId, userId);
         ReservationResponse response = reservationService.completePayment(reservationId, userId);
@@ -69,7 +69,7 @@ public class ReservationController {
      */
     @GetMapping("/my")
     public ResponseEntity<List<ReservationResponse>> getMyReservations(
-            @RequestHeader(value = USER_ID_HEADER, required = true) Long userId
+            @RequestHeader(value = HeaderConstants.USER_ID, required = true) Long userId
     ) {
         logger.info("Fetching reservations for user: {}", userId);
         List<ReservationResponse> reservations = reservationService.getUserReservations(userId);
@@ -82,7 +82,7 @@ public class ReservationController {
     @GetMapping("/{reservationId}")
     public ResponseEntity<ReservationResponse> getReservationById(
             @PathVariable Long reservationId,
-            @RequestHeader(value = USER_ID_HEADER, required = true) Long userId
+            @RequestHeader(value = HeaderConstants.USER_ID, required = true) Long userId
     ) {
         logger.info("Fetching reservation {} for user: {}", reservationId, userId);
         ReservationResponse reservation = reservationService.getReservationById(reservationId, userId);
@@ -117,7 +117,7 @@ public class ReservationController {
     @DeleteMapping("/{reservationId}")
     public ResponseEntity<Void> cancelReservation(
             @PathVariable Long reservationId,
-            @RequestHeader(value = USER_ID_HEADER, required = true) Long userId
+            @RequestHeader(value = HeaderConstants.USER_ID, required = true) Long userId
     ) {
         logger.info("Cancelling reservation {} for user: {}", reservationId, userId);
         reservationService.cancelReservation(reservationId, userId);
@@ -129,7 +129,7 @@ public class ReservationController {
      */
     @GetMapping("/my/count")
     public ResponseEntity<Long> getActiveReservationCount(
-            @RequestHeader(value = USER_ID_HEADER, required = true) Long userId
+            @RequestHeader(value = HeaderConstants.USER_ID, required = true) Long userId
     ) {
         logger.info("Fetching active reservation count for user: {}", userId);
         long count = reservationService.countActiveReservationsForUser(userId);
@@ -142,7 +142,7 @@ public class ReservationController {
     @PostMapping("/stalls/{stallId}/hold")
     public ResponseEntity<Void> holdStall(
             @PathVariable Long stallId,
-            @RequestHeader(value = USER_ID_HEADER, required = true) Long userId
+            @RequestHeader(value = HeaderConstants.USER_ID, required = true) Long userId
     ) {
         logger.info("Hold stall request for stall {} by user: {}", stallId, userId);
         reservationService.holdStall(stallId, userId);

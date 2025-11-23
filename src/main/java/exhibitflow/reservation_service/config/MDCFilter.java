@@ -1,5 +1,6 @@
 package exhibitflow.reservation_service.config;
 
+import exhibitflow.reservation_service.constants.HeaderConstants;
 import exhibitflow.reservation_service.util.MDCUtil;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -22,11 +23,17 @@ public class MDCFilter extends OncePerRequestFilter {
                                     HttpServletResponse response, 
                                     FilterChain filterChain) throws ServletException, IOException {
         try {
-            // Generate and set request ID
-            String requestId = MDCUtil.generateRequestId();
+            // Use existing request ID from header if present, otherwise generate new one
+            String requestId = request.getHeader(HeaderConstants.REQUEST_ID);
+            if (requestId == null || requestId.trim().isEmpty()) {
+                requestId = MDCUtil.generateRequestId();
+            } else {
+                // Propagate existing request ID to MDC
+                MDCUtil.setRequestId(requestId);
+            }
             
             // Extract user ID from header if present
-            String userIdHeader = request.getHeader("X-User-Id");
+            String userIdHeader = request.getHeader(HeaderConstants.USER_ID);
             if (userIdHeader != null) {
                 try {
                     MDCUtil.setUserId(Long.parseLong(userIdHeader));
@@ -36,7 +43,7 @@ public class MDCFilter extends OncePerRequestFilter {
             }
             
             // Add request ID to response header
-            response.setHeader("X-Request-Id", requestId);
+            response.setHeader(HeaderConstants.REQUEST_ID, requestId);
             
             filterChain.doFilter(request, response);
         } finally {

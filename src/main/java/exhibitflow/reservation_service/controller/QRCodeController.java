@@ -1,5 +1,6 @@
 package exhibitflow.reservation_service.controller;
 
+import exhibitflow.reservation_service.constants.HeaderConstants;
 import exhibitflow.reservation_service.dto.ReservationResponse;
 import exhibitflow.reservation_service.service.QRCodeGeneratorService;
 import exhibitflow.reservation_service.service.ReservationService;
@@ -17,8 +18,6 @@ import java.util.Map;
 @RequestMapping("/api/v1/qrcode")
 public class QRCodeController {
     
-    private static final String USER_ID_HEADER = "X-User-Id";
-    
     @Autowired
     private QRCodeGeneratorService qrCodeGeneratorService;
     
@@ -33,7 +32,7 @@ public class QRCodeController {
     @GetMapping("/regenerate/{reservationId}")
     public ResponseEntity<Map<String, String>> regenerateQRCode(
             @PathVariable Long reservationId,
-            @RequestHeader(USER_ID_HEADER) Long userId) {
+            @RequestHeader(HeaderConstants.USER_ID) Long userId) {
         
         // Get reservation details
         ReservationResponse reservation = reservationService.getUserReservations(userId)

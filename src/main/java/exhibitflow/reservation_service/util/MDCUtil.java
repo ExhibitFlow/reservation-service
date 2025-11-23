@@ -28,6 +28,16 @@ public class MDCUtil {
     }
 
     /**
+     * Sets an existing request ID in MDC
+     * Used when propagating request ID from upstream services
+     */
+    public static void setRequestId(String requestId) {
+        if (requestId != null && !requestId.trim().isEmpty()) {
+            MDC.put(REQUEST_ID, requestId);
+        }
+    }
+
+    /**
      * Sets user ID in MDC
      */
     public static void setUserId(Long userId) {
