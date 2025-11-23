@@ -53,34 +53,13 @@ public class VenueMapService {
     }
 
     /**
-     * Get venue map filtered by floor
+     * Get venue map filtered by code
      */
     @Transactional(readOnly = true)
-    public VenueMapResponse getVenueMapByFloor(Integer floorNumber) {
-        log.info("Fetching venue map for floor: {}", floorNumber);
+    public VenueMapResponse getVenueMapByCode(String code) {
+        log.info("Fetching venue map for code: {}", code);
         
-        List<StallDto> stalls = stallServiceClient.getStallsByFloor(floorNumber);
-        Set<Long> reservedStallIds = getReservedStallIds();
-        
-        List<StallMapDto> stallMapDtos = stalls.stream()
-                .map(stall -> convertToStallMapDto(stall, reservedStallIds.contains(stall.getId())))
-                .collect(Collectors.toList());
-        
-        return VenueMapResponse.builder()
-                .stalls(stallMapDtos)
-                .bounds(calculateMapBounds(stalls))
-                .statistics(calculateStatistics(stalls, reservedStallIds))
-                .build();
-    }
-
-    /**
-     * Get venue map filtered by zone
-     */
-    @Transactional(readOnly = true)
-    public VenueMapResponse getVenueMapByZone(String zone) {
-        log.info("Fetching venue map for zone: {}", zone);
-        
-        List<StallDto> stalls = stallServiceClient.getStallsByZone(zone);
+        List<StallDto> stalls = stallServiceClient.getStallsByCode(code);
         Set<Long> reservedStallIds = getReservedStallIds();
         
         List<StallMapDto> stallMapDtos = stalls.stream()
@@ -141,8 +120,7 @@ public class VenueMapService {
                 .size(stall.getSize())
                 .price(stall.getPrice())
                 .isReserved(isReserved)  // Use local reservation status
-                .zone(stall.getZone())
-                .floorNumber(stall.getFloorNumber())
+                .code(stall.getCode())
                 .description(stall.getDescription())
                 .boundary(stall.getBoundary());
         
@@ -200,24 +178,18 @@ public class VenueMapService {
                 .count();
         int available = total - reserved;
 
-        List<String> zones = stalls.stream()
-                .map(StallDto::getZone)
+        List<String> codes = stalls.stream()
+                .map(StallDto::getCode)
                 .distinct()
                 .sorted()
                 .collect(Collectors.toList());
 
-        List<Integer> floors = stalls.stream()
-                .map(StallDto::getFloorNumber)
-                .distinct()
-                .sorted()
-                .collect(Collectors.toList());
 
         return VenueMapResponse.MapStatistics.builder()
                 .totalStalls(total)
                 .availableStalls(available)
                 .reservedStalls(reserved)
-                .zones(zones)
-                .floors(floors)
+                .codes(codes)
                 .build();
     }
 }

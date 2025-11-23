@@ -12,13 +12,14 @@ import org.springframework.web.bind.annotation.PathVariable;
 @FeignClient(
     name = "user-service",
     url = "${services.user-service.url}",
-    configuration = FeignClientConfig.class
+    configuration = FeignClientConfig.class,
+    path = "/api/users"
 )
 public interface UserServiceClient {
 
     /**
      * Get user by ID from User Service
      */
-    @GetMapping("/api/users/{userId}")
+    @GetMapping("/{userId}")
     UserDto getUserById(@PathVariable("userId") Long userId);
 }

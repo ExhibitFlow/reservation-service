@@ -16,45 +16,48 @@ import java.util.List;
 @FeignClient(
     name = "stall-service",
     url = "${services.stall-service.url}",
-    configuration = FeignClientConfig.class
+    configuration = FeignClientConfig.class,
+    path = "/api/stalls"
 )
 public interface StallServiceClient {
 
     /**
      * Get stall by ID from Stall Service
      */
-    @GetMapping("/api/stalls/{stallId}")
+    @GetMapping("/{stallId}")
     StallDto getStallById(@PathVariable("stallId") Long stallId);
 
     /**
      * Reserve a stall (mark as reserved)
      */
-    @PutMapping("/api/stalls/{stallId}/reserve")
+    @PutMapping("/{stallId}/reserve")
     @CacheEvict(value = "stalls", key = "#stallId")
     StallDto reserveStall(@PathVariable("stallId") Long stallId);
 
     /**
+     * Hold a stall (temporarily hold for reservation)
+     */
+    @PutMapping("/{stallId}/hold")
+    @CacheEvict(value = "stalls", key = "#stallId")
+    StallDto holdStall(@PathVariable("stallId") Long stallId);
+
+    /**
      * Release a stall reservation (mark as available)
      */
-    @PutMapping("/api/stalls/{stallId}/release")
+    @PutMapping("/{stallId}/release")
     @CacheEvict(value = "stalls", key = "#stallId")
     StallDto releaseStall(@PathVariable("stallId") Long stallId);
     
     /**
      * Get all stalls (for venue map)
      */
-    @GetMapping("/api/stalls")
+    @GetMapping("")
     List<StallDto> getAllStalls();
     
+
     /**
-     * Get stalls by floor
+     * Get stalls by code
      */
-    @GetMapping("/api/stalls/floor/{floorNumber}")
-    List<StallDto> getStallsByFloor(@PathVariable("floorNumber") Integer floorNumber);
-    
-    /**
-     * Get stalls by zone
-     */
-    @GetMapping("/api/stalls/zone/{zone}")
-    List<StallDto> getStallsByZone(@PathVariable("zone") String zone);
+    @GetMapping("/code/{code}")
+    List<StallDto> getStallsByCode(@PathVariable("code") String code);
 }

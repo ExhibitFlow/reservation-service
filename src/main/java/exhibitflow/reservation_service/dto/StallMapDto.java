@@ -20,8 +20,7 @@ public class StallMapDto {
     private String size;
     private Double price;
     private Boolean isReserved;
-    private String zone;
-    private Integer floorNumber;
+    private String code;
     private String description;
     
     // Spatial data as GeoJSON-compatible structures

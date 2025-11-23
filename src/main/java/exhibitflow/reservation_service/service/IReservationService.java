@@ -53,4 +53,9 @@ public interface IReservationService {
      * Counts active reservations for a user
      */
     long countActiveReservationsForUser(Long userId);
+
+    /**
+     * Temporarily holds a stall for a user
+     */
+    void holdStall(Long stallId, Long userId);
 }

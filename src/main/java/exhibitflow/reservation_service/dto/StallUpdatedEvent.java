@@ -19,8 +19,7 @@ public class StallUpdatedEvent {
     private String stallCode;
     private String size;
     private Double price;
-    private String zone;
-    private Integer floorNumber;
+    private String code;
     private String description;
     private CoordinateDto location;
     private List<List<Double>> boundary;

@@ -31,12 +31,12 @@ public class VenueMapController {
     }
 
     /**
-     * Get venue map for a specific zone
+     * Get venue map for a specific code
      */
-    @GetMapping("/map/zone/{zone}")
-    public ResponseEntity<VenueMapResponse> getVenueMapByZone(@PathVariable String zone) {
-        log.info("GET /api/venue/map/zone/{} - Fetching venue map for zone", zone);
-        VenueMapResponse response = venueMapService.getVenueMapByZone(zone);
+    @GetMapping("/map/code/{code}")
+    public ResponseEntity<VenueMapResponse> getVenueMapBycode(@PathVariable String code) {
+        log.info("GET /api/venue/map/code/{} - Fetching venue map for code", code);
+        VenueMapResponse response = venueMapService.getVenueMapByCode(code);
         return ResponseEntity.ok(response);
     }
 

@@ -38,7 +38,6 @@ public class VenueMapResponse {
         private Integer totalStalls;
         private Integer availableStalls;
         private Integer reservedStalls;
-        private List<String> zones;
-        private List<Integer> floors;
+        private List<String> codes;
     }
 }

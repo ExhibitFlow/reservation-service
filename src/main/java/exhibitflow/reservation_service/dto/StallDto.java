@@ -21,8 +21,7 @@ public class StallDto {
     private String size;
     private Double price;
     private Boolean isReserved;
-    private String zone;
-    private Integer floorNumber;
+    private String code;
     private String description;
     
     // Spatial data for venue map (received from Stall service)

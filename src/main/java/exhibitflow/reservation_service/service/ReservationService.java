@@ -426,6 +426,64 @@ public class ReservationService implements IReservationService {
     }
 
     /**
+     * Temporarily holds a stall for a user
+     * This is a lightweight operation that marks the stall as held in the Stall Service
+     */
+    @Override
+    @Transactional
+    public void holdStall(Long stallId, Long userId) {
+        MDCUtil.setUserId(userId);
+        logger.info("Holding stall {} for user: {}", stallId, userId);
+
+        // Validate user exists via User Service
+        UserDto user = userServiceClient.getUserById(userId);
+        if (user == null) {
+            throw new ResourceNotFoundException("User not found with ID: " + userId);
+        }
+
+        // Get stall details from Stall Service
+        StallDto stall = stallServiceClient.getStallById(stallId);
+        if (stall == null) {
+            throw new ResourceNotFoundException("Stall not found with ID: " + stallId);
+        }
+
+        // Check if stall is already reserved
+        if (stall.getIsReserved()) {
+            logger.error("Stall {} is already reserved", stall.getStallCode());
+            throw new StallNotAvailableException(
+                String.format("Stall %s is already reserved", stall.getStallCode())
+            );
+        }
+
+        // Check if there's an existing PENDING_PAYMENT reservation for this stall
+        Optional<Reservation> existingPending = reservationRepository
+            .findByStallIdAndStatus(stallId, Reservation.ReservationStatus.PENDING_PAYMENT);
+        
+        if (existingPending.isPresent()) {
+            Reservation pending = existingPending.get();
+            if (pending.getPaymentExpiresAt().isAfter(LocalDateTime.now())) {
+                logger.error("Stall {} is temporarily locked for payment until {}", 
+                    stall.getStallCode(), pending.getPaymentExpiresAt());
+                throw new StallNotAvailableException(
+                    String.format("Stall %s is temporarily locked for payment. Please try again later.", stall.getStallCode())
+                );
+            }
+        }
+
+        // Hold the stall via Stall Service
+        try {
+            StallDto heldStall = stallServiceClient.holdStall(stallId);
+            if (heldStall == null) {
+                throw new StallNotAvailableException("Failed to hold stall. Please try again.");
+            }
+            logger.info("Stall {} held successfully for user: {}", stallId, userId);
+        } catch (Exception e) {
+            logger.error("Failed to hold stall {}: {}", stallId, e.getMessage());
+            throw new StallNotAvailableException("Failed to hold stall. Please try again.");
+        }
+    }
+
+    /**
      * Map reservation with provided user and stall data
      */
     private ReservationResponse mapToReservationResponse(Reservation reservation, UserDto user, StallDto stall) {

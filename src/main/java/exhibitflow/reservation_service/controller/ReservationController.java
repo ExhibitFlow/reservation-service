@@ -134,4 +134,17 @@ public class ReservationController {
         long count = reservationService.countActiveReservationsForUser(userId);
         return ResponseEntity.ok(count);
     }
+
+    /**
+     * Hold a stall temporarily
+     */
+    @PostMapping("/stalls/{stallId}/hold")
+    public ResponseEntity<Void> holdStall(
+            @PathVariable Long stallId,
+            @RequestHeader(value = "X-User-Id", required = true) Long userId
+    ) {
+        logger.info("Hold stall request for stall {} by user: {}", stallId, userId);
+        reservationService.holdStall(stallId, userId);
+        return ResponseEntity.ok().build();
+    }
 }
