@@ -17,15 +17,15 @@ import java.util.Optional;
 @Repository
 public interface ReservationRepository extends JpaRepository<Reservation, Long> {
     
-    List<Reservation> findByUserId(Long userId);
+    List<Reservation> findByUserId(String userId);
     
-    List<Reservation> findByUserIdAndStatus(Long userId, Reservation.ReservationStatus status);
+    List<Reservation> findByUserIdAndStatus(String userId, Reservation.ReservationStatus status);
     
     @Query("SELECT COUNT(r) FROM Reservation r WHERE r.userId = :userId AND r.status = :status")
-    long countByUserIdAndStatus(@Param("userId") Long userId, @Param("status") Reservation.ReservationStatus status);
+    long countByUserIdAndStatus(@Param("userId") String userId, @Param("status") Reservation.ReservationStatus status);
     
     @Query("SELECT COUNT(r) FROM Reservation r WHERE r.userId = :userId AND r.status IN :statuses")
-    long countByUserIdAndStatusIn(@Param("userId") Long userId, @Param("statuses") List<Reservation.ReservationStatus> statuses);
+    long countByUserIdAndStatusIn(@Param("userId") String userId, @Param("statuses") List<Reservation.ReservationStatus> statuses);
     
     List<Reservation> findByStallId(Long stallId);
     

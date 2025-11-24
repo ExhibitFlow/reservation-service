@@ -23,6 +23,7 @@ import java.time.LocalDateTime;
 
 import static org.hamcrest.Matchers.*;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -66,7 +67,7 @@ class ReservationControllerIntegrationTest {
 
         // Setup test data
         testUser = UserDto.builder()
-                .id(1L)
+                .id("60ab5b68-6f41-49b7-a461-f2cf89e6c099")
                 .email("test@example.com")
                 .name("Test User")
                 .businessName("Test Business")
@@ -87,7 +88,7 @@ class ReservationControllerIntegrationTest {
     @Test
     void testCreateReservation_Success() throws Exception {
         // Mock User Service response
-        when(userServiceClient.getUserById(1L)).thenReturn(testUser);
+        when(userServiceClient.getUserById("60ab5b68-6f41-49b7-a461-f2cf89e6c099")).thenReturn(testUser);
 
         // Mock Stall Service responses
         when(stallServiceClient.getStallById(1L)).thenReturn(testStall);
@@ -104,12 +105,12 @@ class ReservationControllerIntegrationTest {
 
         // Make request
         mockMvc.perform(post("/api/v1/reservations")
-                        .header("X-User-Id", "1")
+                        .header("X-User-Id", "60ab5b68-6f41-49b7-a461-f2cf89e6c099")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(testRequest)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").exists())
-                .andExpect(jsonPath("$.userId").value(1))
+                .andExpect(jsonPath("$.userId").value("60ab5b68-6f41-49b7-a461-f2cf89e6c099"))
                 .andExpect(jsonPath("$.userName").value("Test User"))
                 .andExpect(jsonPath("$.userEmail").value("test@example.com"))
                 .andExpect(jsonPath("$.businessName").value("Test Business"))
@@ -121,7 +122,7 @@ class ReservationControllerIntegrationTest {
                 .andExpect(jsonPath("$.qrCodeBase64").doesNotExist());
 
         // Verify external service calls
-        verify(userServiceClient, times(1)).getUserById(1L);
+        verify(userServiceClient, times(1)).getUserById("60ab5b68-6f41-49b7-a461-f2cf89e6c099");
         verify(stallServiceClient, times(1)).getStallById(1L);
         verify(stallServiceClient, times(1)).holdStall(1L);
     }
@@ -135,14 +136,14 @@ class ReservationControllerIntegrationTest {
                 .andExpect(status().isInternalServerError()); // Returns 500 for missing required header
 
         // Verify no external service calls
-        verify(userServiceClient, never()).getUserById(anyLong());
+        verify(userServiceClient, never()).getUserById(anyString());
         verify(stallServiceClient, never()).getStallById(anyLong());
     }
 
     @Test
     void testCreateReservation_UserNotFound() throws Exception {
         // Mock User Service to return null
-        when(userServiceClient.getUserById(999L)).thenReturn(null);
+        when(userServiceClient.getUserById("999")).thenReturn(null);
 
         // Make request
         mockMvc.perform(post("/api/v1/reservations")
@@ -156,7 +157,7 @@ class ReservationControllerIntegrationTest {
     @Test
     void testCreateReservation_StallNotAvailable() throws Exception {
         // Mock User Service response
-        when(userServiceClient.getUserById(1L)).thenReturn(testUser);
+        when(userServiceClient.getUserById("60ab5b68-6f41-49b7-a461-f2cf89e6c099")).thenReturn(testUser);
 
         // Mock Stall Service to return already reserved stall
         StallDto reservedStall = StallDto.builder()
@@ -170,7 +171,7 @@ class ReservationControllerIntegrationTest {
 
         // Make request
         mockMvc.perform(post("/api/v1/reservations")
-                        .header("X-User-Id", "1")
+                        .header("X-User-Id", "60ab5b68-6f41-49b7-a461-f2cf89e6c099")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(testRequest)))
                 .andExpect(status().isBadRequest()) // StallNotAvailableException returns 400
@@ -180,7 +181,7 @@ class ReservationControllerIntegrationTest {
     @Test
     void testCompletePayment_Success() throws Exception {
         // Mock services for reservation creation
-        when(userServiceClient.getUserById(1L)).thenReturn(testUser);
+        when(userServiceClient.getUserById("60ab5b68-6f41-49b7-a461-f2cf89e6c099")).thenReturn(testUser);
         when(stallServiceClient.getStallById(1L)).thenReturn(testStall);
         when(stallServiceClient.holdStall(1L)).thenReturn(
                 StallDto.builder()
@@ -195,7 +196,7 @@ class ReservationControllerIntegrationTest {
 
         // Create reservation
         String createResponse = mockMvc.perform(post("/api/v1/reservations")
-                        .header("X-User-Id", "1")
+                        .header("X-User-Id", "60ab5b68-6f41-49b7-a461-f2cf89e6c099")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(testRequest)))
                 .andExpect(status().isCreated())
@@ -220,7 +221,7 @@ class ReservationControllerIntegrationTest {
 
         // Complete payment
         mockMvc.perform(post("/api/v1/reservations/" + reservationId + "/complete-payment")
-                        .header("X-User-Id", "1"))
+                        .header("X-User-Id", "60ab5b68-6f41-49b7-a461-f2cf89e6c099"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(reservationId))
                 .andExpect(jsonPath("$.status").value("CONFIRMED"))
@@ -232,7 +233,7 @@ class ReservationControllerIntegrationTest {
     void testCompletePayment_Unauthorized() throws Exception {
         // Create reservation for user 1
         Reservation reservation = Reservation.builder()
-                .userId(1L)
+                .userId("60ab5b68-6f41-49b7-a461-f2cf89e6c099")
                 .stallId(1L)
                 .status(Reservation.ReservationStatus.PENDING_PAYMENT)
                 .paymentExpiresAt(LocalDateTime.now().plusMinutes(5))
@@ -249,18 +250,18 @@ class ReservationControllerIntegrationTest {
     @Test
     void testGetMyReservations_Success() throws Exception {
         // Mock User Service
-        when(userServiceClient.getUserById(1L)).thenReturn(testUser);
+        when(userServiceClient.getUserById("60ab5b68-6f41-49b7-a461-f2cf89e6c099")).thenReturn(testUser);
 
         // Create reservations
         Reservation res1 = Reservation.builder()
-                .userId(1L)
+                .userId("60ab5b68-6f41-49b7-a461-f2cf89e6c099")
                 .stallId(1L)
                 .status(Reservation.ReservationStatus.CONFIRMED)
                 .paymentCompletedAt(LocalDateTime.now())
                 .build();
         
         Reservation res2 = Reservation.builder()
-                .userId(1L)
+                .userId("60ab5b68-6f41-49b7-a461-f2cf89e6c099")
                 .stallId(2L)
                 .status(Reservation.ReservationStatus.PENDING_PAYMENT)
                 .paymentExpiresAt(LocalDateTime.now().plusMinutes(5))
@@ -291,7 +292,7 @@ class ReservationControllerIntegrationTest {
 
         // Get reservations
         mockMvc.perform(get("/api/v1/reservations/my")
-                        .header("X-User-Id", "1"))
+                        .header("X-User-Id", "60ab5b68-6f41-49b7-a461-f2cf89e6c099"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(2)))
                 .andExpect(jsonPath("$[*].stallCode", containsInAnyOrder("A-001", "A-002")))
@@ -302,21 +303,21 @@ class ReservationControllerIntegrationTest {
     void testGetAllReservations_Success() throws Exception {
         // Mock User Service responses
         UserDto user1 = UserDto.builder()
-                .id(1L)
+                .id("60ab5b68-6f41-49b7-a461-f2cf89e6c099")
                 .email("user1@example.com")
                 .name("User One")
                 .businessName("Business One")
                 .build();
         
         UserDto user2 = UserDto.builder()
-                .id(2L)
+                .id("70ab5b68-6f41-49b7-a461-f2cf89e6c099")
                 .email("user2@example.com")
                 .name("User Two")
                 .businessName("Business Two")
                 .build();
 
-        when(userServiceClient.getUserById(1L)).thenReturn(user1);
-        when(userServiceClient.getUserById(2L)).thenReturn(user2);
+        when(userServiceClient.getUserById("60ab5b68-6f41-49b7-a461-f2cf89e6c099")).thenReturn(user1);
+        when(userServiceClient.getUserById("70ab5b68-6f41-49b7-a461-f2cf89e6c099")).thenReturn(user2);
 
         // Mock Stall Service responses
         StallDto stall1 = StallDto.builder()
@@ -340,14 +341,14 @@ class ReservationControllerIntegrationTest {
 
         // Create reservations
         Reservation res1 = Reservation.builder()
-                .userId(1L)
+                .userId("60ab5b68-6f41-49b7-a461-f2cf89e6c099")
                 .stallId(1L)
                 .status(Reservation.ReservationStatus.CONFIRMED)
                 .paymentCompletedAt(LocalDateTime.now())
                 .build();
         
         Reservation res2 = Reservation.builder()
-                .userId(2L)
+                .userId("70ab5b68-6f41-49b7-a461-f2cf89e6c099")
                 .stallId(2L)
                 .status(Reservation.ReservationStatus.PENDING_PAYMENT)
                 .paymentExpiresAt(LocalDateTime.now().plusMinutes(5))
@@ -369,7 +370,7 @@ class ReservationControllerIntegrationTest {
     @Test
     void testCancelReservation_Success() throws Exception {
         // Mock User Service response
-        when(userServiceClient.getUserById(1L)).thenReturn(testUser);
+        when(userServiceClient.getUserById("60ab5b68-6f41-49b7-a461-f2cf89e6c099")).thenReturn(testUser);
 
         // Mock Stall Service responses
         when(stallServiceClient.getStallById(1L)).thenReturn(testStall);
@@ -386,7 +387,7 @@ class ReservationControllerIntegrationTest {
 
         // Create reservation
         String createResponse = mockMvc.perform(post("/api/v1/reservations")
-                        .header("X-User-Id", "1")
+                        .header("X-User-Id", "60ab5b68-6f41-49b7-a461-f2cf89e6c099")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(testRequest)))
                 .andExpect(status().isCreated())
@@ -402,7 +403,7 @@ class ReservationControllerIntegrationTest {
 
         // Cancel reservation
         mockMvc.perform(delete("/api/v1/reservations/" + reservationId)
-                        .header("X-User-Id", "1"))
+                        .header("X-User-Id", "60ab5b68-6f41-49b7-a461-f2cf89e6c099"))
                 .andExpect(status().isNoContent());
 
         // Verify stall was released
@@ -413,7 +414,7 @@ class ReservationControllerIntegrationTest {
     void testCancelReservation_Unauthorized() throws Exception {
         // Create reservation for user 1
         Reservation reservation = Reservation.builder()
-                .userId(1L)
+                .userId("60ab5b68-6f41-49b7-a461-f2cf89e6c099")
                 .stallId(1L)
                 .status(Reservation.ReservationStatus.CONFIRMED)
                 .paymentCompletedAt(LocalDateTime.now())
@@ -437,13 +438,13 @@ class ReservationControllerIntegrationTest {
 
         // Make request
         mockMvc.perform(post("/api/v1/reservations")
-                        .header("X-User-Id", "1")
+                        .header("X-User-Id", "60ab5b68-6f41-49b7-a461-f2cf89e6c099")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(invalidRequest)))
                 .andExpect(status().isBadRequest());
 
         // Verify no external service calls
-        verify(userServiceClient, never()).getUserById(anyLong());
+        verify(userServiceClient, never()).getUserById(anyString());
         verify(stallServiceClient, never()).getStallById(anyLong());
     }
 }

@@ -17,7 +17,7 @@ DROP TABLE IF EXISTS reservations CASCADE;
 -- Create reservations table
 CREATE TABLE reservations (
     id BIGSERIAL PRIMARY KEY,
-    user_id BIGINT NOT NULL,
+    user_id VARCHAR(255) NOT NULL,
     stall_id BIGINT NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     qr_code_base64 TEXT,

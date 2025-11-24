@@ -17,17 +17,17 @@ public interface IReservationService {
     /**
      * Creates a new reservation with payment lock
      */
-    ReservationResponse createReservation(CreateReservationRequest request, Long userId);
+    ReservationResponse createReservation(CreateReservationRequest request, String userId);
 
     /**
      * Completes payment for a pending reservation
      */
-    ReservationResponse completePayment(Long reservationId, Long userId);
+    ReservationResponse completePayment(Long reservationId, String userId);
 
     /**
      * Retrieves all reservations for a specific user
      */
-    List<ReservationResponse> getUserReservations(Long userId);
+    List<ReservationResponse> getUserReservations(String userId);
 
     /**
      * Retrieves all reservations with pagination
@@ -37,12 +37,12 @@ public interface IReservationService {
     /**
      * Retrieves a specific reservation by ID
      */
-    ReservationResponse getReservationById(Long reservationId, Long userId);
+    ReservationResponse getReservationById(Long reservationId, String userId);
 
     /**
      * Cancels a reservation
      */
-    void cancelReservation(Long reservationId, Long userId);
+    void cancelReservation(Long reservationId, String userId);
 
     /**
      * Checks if a stall has active reservations
@@ -52,10 +52,10 @@ public interface IReservationService {
     /**
      * Counts active reservations for a user
      */
-    long countActiveReservationsForUser(Long userId);
+    long countActiveReservationsForUser(String userId);
 
     /**
      * Temporarily holds a stall for a user
      */
-    void holdStall(Long stallId, Long userId);
+    void holdStall(Long stallId, String userId);
 }

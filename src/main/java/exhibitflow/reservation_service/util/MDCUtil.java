@@ -40,9 +40,9 @@ public class MDCUtil {
     /**
      * Sets user ID in MDC
      */
-    public static void setUserId(Long userId) {
-        if (userId != null) {
-            MDC.put(USER_ID, userId.toString());
+    public static void setUserId(String userId) {
+        if (userId != null && !userId.trim().isEmpty()) {
+            MDC.put(USER_ID, userId);
         }
     }
 

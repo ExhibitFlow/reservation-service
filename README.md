@@ -201,7 +201,7 @@ This service expects the `X-User-Id` header in requests, which should be set by 
 ```bash
 curl -X POST http://localhost:8080/api/reservations \
   -H "Content-Type: application/json" \
-  -H "X-User-Id: 1" \
+  -H "X-User-Id: 60ab5b68-6f41-49b7-a461-f2cf89e6c099" \
   -d '{
     "stallId": 5
   }'
@@ -211,7 +211,7 @@ curl -X POST http://localhost:8080/api/reservations \
 ```json
 {
   "id": 1,
-  "userId": 1,
+  "userId": "60ab5b68-6f41-49b7-a461-f2cf89e6c099",
   "userName": "John Doe",
   "userEmail": "john@example.com",
   "businessName": "Johns Books Store",
@@ -227,19 +227,19 @@ curl -X POST http://localhost:8080/api/reservations \
 #### 2. View My Reservations
 ```bash
 curl http://localhost:8080/api/reservations/my \
-  -H "X-User-Id: 1"
+  -H "X-User-Id: 60ab5b68-6f41-49b7-a461-f2cf89e6c099"
 ```
 
 #### 3. View All Reservations (Admin)
 ```bash
 curl http://localhost:8080/api/reservations \
-  -H "X-User-Id: 1"
+  -H "X-User-Id: 60ab5b68-6f41-49b7-a461-f2cf89e6c099"
 ```
 
 #### 4. Cancel a Reservation
 ```bash
 curl -X DELETE http://localhost:8080/api/reservations/1 \
-  -H "X-User-Id: 1"
+  -H "X-User-Id: 60ab5b68-6f41-49b7-a461-f2cf89e6c099"
 ```
 
 ### API Endpoints

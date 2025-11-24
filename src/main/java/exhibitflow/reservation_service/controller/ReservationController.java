@@ -51,7 +51,7 @@ public class ReservationController {
     )
     public ResponseEntity<ReservationResponse> createReservation(
             @Valid @RequestBody CreateReservationRequest request,
-            @RequestHeader(value = HeaderConstants.USER_ID, required = true) Long userId
+            @RequestHeader(value = HeaderConstants.USER_ID, required = true) String userId
     ) {
         logger.info("Reservation request received for user: {}", userId);
         ReservationResponse response = reservationService.createReservation(request, userId);
@@ -69,7 +69,7 @@ public class ReservationController {
     )
     public ResponseEntity<ReservationResponse> completePayment(
             @PathVariable Long reservationId,
-            @RequestHeader(value = HeaderConstants.USER_ID, required = true) Long userId
+            @RequestHeader(value = HeaderConstants.USER_ID, required = true) String userId
     ) {
         logger.info("Payment completion request for reservation: {} by user: {}", reservationId, userId);
         ReservationResponse response = reservationService.completePayment(reservationId, userId);
@@ -85,7 +85,7 @@ public class ReservationController {
         description = "Retrieves all reservations for the authenticated user. Requires USER/VIEWER role or higher."
     )
     public ResponseEntity<List<ReservationResponse>> getMyReservations(
-            @RequestHeader(value = HeaderConstants.USER_ID, required = true) Long userId
+            @RequestHeader(value = HeaderConstants.USER_ID, required = true) String userId
     ) {
         logger.info("Fetching reservations for user: {}", userId);
         List<ReservationResponse> reservations = reservationService.getUserReservations(userId);
@@ -102,7 +102,7 @@ public class ReservationController {
     )
     public ResponseEntity<ReservationResponse> getReservationById(
             @PathVariable Long reservationId,
-            @RequestHeader(value = HeaderConstants.USER_ID, required = true) Long userId
+            @RequestHeader(value = HeaderConstants.USER_ID, required = true) String userId
     ) {
         logger.info("Fetching reservation {} for user: {}", reservationId, userId);
         ReservationResponse reservation = reservationService.getReservationById(reservationId, userId);
@@ -145,7 +145,7 @@ public class ReservationController {
     )
     public ResponseEntity<Void> cancelReservation(
             @PathVariable Long reservationId,
-            @RequestHeader(value = HeaderConstants.USER_ID, required = true) Long userId
+            @RequestHeader(value = HeaderConstants.USER_ID, required = true) String userId
     ) {
         logger.info("Cancelling reservation {} for user: {}", reservationId, userId);
         reservationService.cancelReservation(reservationId, userId);
@@ -161,7 +161,7 @@ public class ReservationController {
         description = "Returns the number of active reservations for the authenticated user. Requires USER/VIEWER role or higher."
     )
     public ResponseEntity<Long> getActiveReservationCount(
-            @RequestHeader(value = HeaderConstants.USER_ID, required = true) Long userId
+            @RequestHeader(value = HeaderConstants.USER_ID, required = true) String userId
     ) {
         logger.info("Fetching active reservation count for user: {}", userId);
         long count = reservationService.countActiveReservationsForUser(userId);
@@ -178,7 +178,7 @@ public class ReservationController {
     )
     public ResponseEntity<Void> holdStall(
             @PathVariable Long stallId,
-            @RequestHeader(value = HeaderConstants.USER_ID, required = true) Long userId
+            @RequestHeader(value = HeaderConstants.USER_ID, required = true) String userId
     ) {
         logger.info("Hold stall request for stall {} by user: {}", stallId, userId);
         reservationService.holdStall(stallId, userId);

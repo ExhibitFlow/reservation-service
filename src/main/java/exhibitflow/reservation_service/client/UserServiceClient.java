@@ -21,5 +21,5 @@ public interface UserServiceClient {
      * Get user by ID from User Service
      */
     @GetMapping("/{userId}")
-    UserDto getUserById(@PathVariable("userId") Long userId);
+    UserDto getUserById(@PathVariable("userId") String userId);
 }

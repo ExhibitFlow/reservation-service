@@ -74,7 +74,7 @@ public class ReservationService implements IReservationService {
      */
     @Override
     @Transactional
-    public ReservationResponse createReservation(CreateReservationRequest request, Long userId) {
+    public ReservationResponse createReservation(CreateReservationRequest request, String userId) {
         MDCUtil.setUserId(userId);
         logger.info("Creating reservation with payment lock for user: {} and stall: {}", userId, request.getStallId());
 
@@ -156,7 +156,7 @@ public class ReservationService implements IReservationService {
      */
     @Override
     @Transactional
-    public ReservationResponse completePayment(Long reservationId, Long userId) {
+    public ReservationResponse completePayment(Long reservationId, String userId) {
         MDCUtil.setUserId(userId);
         MDCUtil.setReservationId(reservationId);
         logger.info("Completing payment for reservation: {} by user: {}", reservationId, userId);
@@ -263,7 +263,7 @@ public class ReservationService implements IReservationService {
      * Get all reservations for a specific user
      */
     @Override
-    public List<ReservationResponse> getUserReservations(Long userId) {
+    public List<ReservationResponse> getUserReservations(String userId) {
         MDCUtil.setUserId(userId);
         logger.debug("Fetching reservations for user: {}", userId);
         
@@ -316,7 +316,7 @@ public class ReservationService implements IReservationService {
      * Get a specific reservation by ID
      */
     @Override
-    public ReservationResponse getReservationById(Long reservationId, Long userId) {
+    public ReservationResponse getReservationById(Long reservationId, String userId) {
         MDCUtil.setUserId(userId);
         MDCUtil.setReservationId(reservationId);
         logger.debug("Fetching reservation: {} for user: {}", reservationId, userId);
@@ -337,7 +337,7 @@ public class ReservationService implements IReservationService {
      */
     @Override
     @Transactional
-    public void cancelReservation(Long reservationId, Long userId) {
+    public void cancelReservation(Long reservationId, String userId) {
         MDCUtil.setUserId(userId);
         MDCUtil.setReservationId(reservationId);
         logger.info("Cancelling reservation: {} for user: {}", reservationId, userId);
@@ -388,7 +388,7 @@ public class ReservationService implements IReservationService {
      * Count active reservations for a user
      */
     @Override
-    public long countActiveReservationsForUser(Long userId) {
+    public long countActiveReservationsForUser(String userId) {
         MDCUtil.setUserId(userId);
         logger.debug("Counting active reservations for user: {}", userId);
         return reservationRepository.countByUserIdAndStatusIn(
@@ -403,7 +403,7 @@ public class ReservationService implements IReservationService {
      */
     @Override
     @Transactional
-    public void holdStall(Long stallId, Long userId) {
+    public void holdStall(Long stallId, String userId) {
         MDCUtil.setUserId(userId);
         logger.info("Holding stall {} for user: {}", stallId, userId);
 
@@ -518,7 +518,7 @@ public class ReservationService implements IReservationService {
     /**
      * Helper method to validate user exists
      */
-    private UserDto validateUser(Long userId) {
+    private UserDto validateUser(String userId) {
         UserDto user = userServiceClient.getUserById(userId);
         if (user == null) {
             throw new ResourceNotFoundException("User not found with ID: " + userId);

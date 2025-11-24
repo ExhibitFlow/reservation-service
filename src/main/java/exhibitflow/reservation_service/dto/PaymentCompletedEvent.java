@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class PaymentCompletedEvent {
     private Long reservationId;
-    private Long userId;
+    private String userId;
     private Long stallId;
     private Double amount;
     private String paymentMethod;

@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class ReservationEvent {
     private Long reservationId;
-    private Long userId;
+    private String userId;
     private Long stallId;
     private String status;
     private LocalDateTime timestamp;

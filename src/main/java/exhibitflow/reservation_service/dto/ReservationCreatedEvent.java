@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class ReservationCreatedEvent {
     private Long reservationId;
-    private Long userId;
+    private String userId;
     private Long stallId;
     private Double totalPrice;
     private LocalDateTime createdAt;
