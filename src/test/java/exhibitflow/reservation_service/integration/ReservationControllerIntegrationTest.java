@@ -383,9 +383,6 @@ class ReservationControllerIntegrationTest {
                         .isReserved(false)
                         .build()
         );
-                        .isReserved(true)
-                        .build()
-        );
 
         // Create reservation
         String createResponse = mockMvc.perform(post("/api/v1/reservations")

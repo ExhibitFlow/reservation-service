@@ -41,4 +41,11 @@ public interface IKafkaProducerService {
      * @param event the payment expired event
      */
     void publishPaymentExpired(PaymentExpiredEvent event);
+    
+    /**
+     * Publish a stall reserved event.
+     *
+     * @param event the stall reserved event
+     */
+    void publishStallReserved(StallReservedEvent event);
 }

@@ -35,6 +35,9 @@ public class KafkaProducerService implements IKafkaProducerService {
     @Value("${kafka.topics.payment-expired}")
     private String paymentExpiredTopic;
 
+    @Value("${kafka.topics.stall-reserved}")
+    private String stallReservedTopic;
+
     @Override
     public void publishReservationCreated(ReservationCreatedEvent event) {
         log.info("Publishing reservation created event: {}", event);
@@ -98,5 +101,18 @@ public class KafkaProducerService implements IKafkaProducerService {
         
         kafkaTemplate.send(message);
         log.debug("Payment expired event published successfully to topic: {}", paymentExpiredTopic);
+    }
+
+    @Override
+    public void publishStallReserved(StallReservedEvent event) {
+        log.info("Publishing stall reserved event: {}", event);
+        Message<StallReservedEvent> message = MessageBuilder
+                .withPayload(event)
+                .setHeader(KafkaHeaders.TOPIC, stallReservedTopic)
+                .setHeader(KafkaHeaders.KEY, event.getPayload().getReservationId())
+                .build();
+        
+        kafkaTemplate.send(message);
+        log.debug("Stall reserved event published successfully to topic: {}", stallReservedTopic);
     }
 }

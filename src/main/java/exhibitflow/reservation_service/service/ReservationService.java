@@ -12,6 +12,7 @@ import exhibitflow.reservation_service.dto.ReservationCreatedEvent;
 import exhibitflow.reservation_service.dto.ReservationResponse;
 import exhibitflow.reservation_service.dto.ReservationSummary;
 import exhibitflow.reservation_service.dto.StallDto;
+import exhibitflow.reservation_service.dto.StallReservedEvent;
 import exhibitflow.reservation_service.dto.UserDto;
 import exhibitflow.reservation_service.entity.Reservation;
 import exhibitflow.reservation_service.exception.*;
@@ -204,23 +205,18 @@ public class ReservationService implements IReservationService {
         UserDto user = userServiceClient.getUserById(userId);
         StallDto stall = stallServiceClient.getStallById(reservation.getStallId());
         
-        // Generate QR code using ZXing
-        try {
-            String qrCodeBase64 = qrCodeGeneratorService.generateQRCode(
-                reservation.getId(),
-                user.getName(),
-                stall.getCode()
-            );
-            reservation.setQrCodeBase64(qrCodeBase64);
-            logger.info("QR code generated successfully for reservation: {}", reservationId);
-        } catch (Exception e) {
-            logger.error("Failed to generate QR code: {}", e.getMessage());
-            // Continue without QR code - can be regenerated later
-        }
+        // Generate QR code using ZXing - REQUIRED
+        String qrCodeBase64 = qrCodeGeneratorService.generateQRCode(
+            reservation.getId(),
+            user.getName(),
+            stall.getCode()
+        );
+        reservation.setQrCodeBase64(qrCodeBase64);
+        logger.info("QR code generated successfully for reservation: {}", reservationId);
         
         Reservation updated = reservationRepository.save(reservation);
         
-        // Publish Kafka event
+        // Publish Kafka events
         publishEvent(() -> {
             PaymentCompletedEvent event = PaymentCompletedEvent.builder()
                 .reservationId(reservationId)
@@ -232,6 +228,31 @@ public class ReservationService implements IReservationService {
                 .build();
             kafkaProducerService.publishPaymentCompleted(event);
         }, "payment completed");
+        
+        // Publish StallReservedEvent with complete reservation details
+        publishEvent(() -> {
+            StallReservedEvent stallEvent = StallReservedEvent.builder()
+                .eventId(java.util.UUID.randomUUID().toString())
+                .eventType("STALL_RESERVED")
+                .eventVersion("1.0")
+                .occurredAt(java.time.LocalDateTime.now().toString())
+                .payload(StallReservedEvent.Payload.builder()
+                    .reservationId(String.valueOf(reservationId))
+                    .stallId(String.valueOf(reservation.getStallId()))
+                    .userId(String.valueOf(userId))
+                    .size(mapToEventSize(stall.getSize()))
+                    .reservationDetails(StallReservedEvent.ReservationDetails.builder()
+                        .reservedAt(reservation.getPaymentCompletedAt().toString())
+                        .expiresAt(reservation.getPaymentExpiresAt() != null ? reservation.getPaymentExpiresAt().toString() : null)
+                        .status(reservation.getStatus().name())
+                        .notes("Payment completed successfully")
+                        .build())
+                    .qrCode(qrCodeBase64)
+                    .paidAmount(stall.getPrice() != null ? stall.getPrice() : 0.0)
+                    .build())
+                .build();
+            kafkaProducerService.publishStallReserved(stallEvent);
+        }, "stall reserved");
         
         logger.info("Payment completed successfully for reservation: {}", reservationId);
         
@@ -547,6 +568,21 @@ public class ReservationService implements IReservationService {
                 reservationRepository.save(pending);
                 releaseStall(stallId);
             }
+        }
+    }
+
+    /**
+     * Helper method to map stall size to event size enum
+     */
+    private StallReservedEvent.Size mapToEventSize(String stallSize) {
+        if (stallSize == null) {
+            return StallReservedEvent.Size.MEDIUM; // default
+        }
+        try {
+            return StallReservedEvent.Size.valueOf(stallSize.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            logger.warn("Unknown stall size: {}, defaulting to MEDIUM", stallSize);
+            return StallReservedEvent.Size.MEDIUM;
         }
     }
 }
