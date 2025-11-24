@@ -38,13 +38,13 @@ public class StallEventConsumer {
             @Header(KafkaHeaders.OFFSET) Long offset) {
         
         log.info("Received StallCreatedEvent from topic: {} | Offset: {} | StallId: {} | StallCode: {}",
-                topic, offset, event.getStallId(), event.getStallCode());
+                topic, offset, event.getId(), event.getCode());
         
         // Clear stalls cache to ensure venue map fetches latest data
         clearStallsCache();
         
         log.info("Successfully processed StallCreatedEvent for stall: {} ({})",
-                event.getStallCode(), event.getStallId());
+                event.getCode(), event.getId());
     }
 
     /**
@@ -63,17 +63,17 @@ public class StallEventConsumer {
             @Header(KafkaHeaders.OFFSET) Long offset) {
         
         log.info("Received StallUpdatedEvent from topic: {} | Offset: {} | StallId: {} | StallCode: {}",
-                topic, offset, event.getStallId(), event.getStallCode());
+                topic, offset, event.getId(), event.getCode());
         
         // Clear specific stall from cache
         var stallsCache = cacheManager.getCache("stalls");
         if (stallsCache != null) {
-            stallsCache.evict(event.getStallId());
-            log.debug("Evicted stall {} from cache", event.getStallId());
+            stallsCache.evict(event.getId());
+            log.debug("Evicted stall {} from cache", event.getId());
         }
         
         log.info("Successfully processed StallUpdatedEvent for stall: {} ({})",
-                event.getStallCode(), event.getStallId());
+                event.getCode(), event.getId());
     }
 
     /**

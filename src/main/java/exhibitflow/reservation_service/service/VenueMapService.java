@@ -34,7 +34,7 @@ public class VenueMapService {
     public VenueMapResponse getVenueMap() {
         log.info("Fetching venue map with all stalls from Stall service");
         
-        List<StallDto> stalls = stallServiceClient.getAllStalls();
+        List<StallDto> stalls = fetchAllStalls();
         return buildVenueMapResponse(stalls);
     }
 
@@ -50,13 +50,37 @@ public class VenueMapService {
     }
 
     /**
+     * Fetch all stalls from the Stall service, handling pagination
+     */
+    private List<StallDto> fetchAllStalls() {
+        List<StallDto> allStalls = new java.util.ArrayList<>();
+        int page = 0;
+        int pageSize = 100; // Fetch 100 stalls per page
+        boolean hasMorePages = true;
+
+        while (hasMorePages) {
+            var pagedResponse = stallServiceClient.getAllStalls(page, pageSize);
+            allStalls.addAll(pagedResponse.getContent());
+
+            log.debug("Fetched page {} with {} stalls. Total so far: {}",
+                     page, pagedResponse.getContent().size(), allStalls.size());
+
+            hasMorePages = !pagedResponse.isLast();
+            page++;
+        }
+
+        log.info("Fetched total of {} stalls from Stall service", allStalls.size());
+        return allStalls;
+    }
+
+    /**
      * Get available stalls only
      */
     @Transactional(readOnly = true)
     public VenueMapResponse getAvailableStallsMap() {
         log.info("Fetching venue map with available stalls only");
         
-        List<StallDto> allStalls = stallServiceClient.getAllStalls();
+        List<StallDto> allStalls = fetchAllStalls();
         Set<Long> reservedStallIds = getReservedStallIds();
         
         // Filter to only available stalls
@@ -100,58 +124,33 @@ public class VenueMapService {
      * The reservation status is determined locally, overriding what Stall service reports
      */
     private StallMapDto convertToStallMapDto(StallDto stall, boolean isReserved) {
-        StallMapDto.StallMapDtoBuilder builder = StallMapDto.builder()
+        return StallMapDto.builder()
                 .id(stall.getId())
-                .stallCode(stall.getStallCode())
+                .stallCode(stall.getCode())
                 .size(stall.getSize())
                 .price(stall.getPrice())
                 .isReserved(isReserved)  // Use local reservation status
                 .code(stall.getCode())
                 .description(stall.getDescription())
-                .boundary(stall.getBoundary());
-        
-        // Convert location if present
-        if (stall.getLocation() != null) {
-            builder.location(StallMapDto.CoordinateDto.builder()
-                    .longitude(stall.getLocation().getLongitude())
-                    .latitude(stall.getLocation().getLatitude())
-                    .build());
-        }
-        
-        return builder.build();
+                .boundary(stall.getBoundary())
+                .location(null)  // Location is now a string in StallDto, not coordinates for map
+                .build();
     }
 
     /**
      * Calculate map bounds from stalls
+     * Note: Since location is now a string (e.g., "Hall A - North Wing, Row 1"),
+     * we cannot calculate geographic bounds. This would need to be updated if
+     * boundary coordinates are used instead.
      */
     private VenueMapResponse.MapBounds calculateMapBounds(List<StallDto> stalls) {
         if (stalls.isEmpty()) {
             return null;
         }
 
-        double minLng = Double.MAX_VALUE;
-        double maxLng = Double.MIN_VALUE;
-        double minLat = Double.MAX_VALUE;
-        double maxLat = Double.MIN_VALUE;
-
-        for (StallDto stall : stalls) {
-            if (stall.getLocation() != null) {
-                double lng = stall.getLocation().getLongitude();
-                double lat = stall.getLocation().getLatitude();
-                
-                minLng = Math.min(minLng, lng);
-                maxLng = Math.max(maxLng, lng);
-                minLat = Math.min(minLat, lat);
-                maxLat = Math.max(maxLat, lat);
-            }
-        }
-
-        return VenueMapResponse.MapBounds.builder()
-                .minLongitude(minLng)
-                .maxLongitude(maxLng)
-                .minLatitude(minLat)
-                .maxLatitude(maxLat)
-                .build();
+        // TODO: Calculate bounds from boundary polygons if needed
+        // For now, return null since we don't have coordinate-based locations
+        return null;
     }
 
     /**

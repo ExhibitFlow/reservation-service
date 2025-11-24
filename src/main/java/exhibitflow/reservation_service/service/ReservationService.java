@@ -195,7 +195,7 @@ public class ReservationService implements IReservationService {
             String qrCodeBase64 = qrCodeGeneratorService.generateQRCode(
                 reservation.getId(),
                 user.getName(),
-                stall.getStallCode()
+                stall.getCode()
             );
             reservation.setQrCodeBase64(qrCodeBase64);
             logger.info("QR code generated successfully for reservation: {}", reservationId);
@@ -401,7 +401,7 @@ public class ReservationService implements IReservationService {
             .userEmail(user.getEmail())
             .businessName(user.getBusinessName())
             .stallId(stall.getId())
-            .stallCode(stall.getStallCode())
+            .stallCode(stall.getCode())
             .stallSize(stall.getSize())
             .createdAt(reservation.getCreatedAt())
             .status(reservation.getStatus().name())
@@ -439,7 +439,7 @@ public class ReservationService implements IReservationService {
                 .id(reservation.getId())
                 .userName(user.getName())
                 .businessName(user.getBusinessName())
-                .stallCode(stall.getStallCode())
+                .stallCode(stall.getCode())
                 .status(reservation.getStatus().name())
                 .createdAt(reservation.getCreatedAt().format(DATE_TIME_FORMATTER))
                 .build();
@@ -507,10 +507,10 @@ public class ReservationService implements IReservationService {
      */
     private void checkStallAvailability(StallDto stall, Long stallId) {
         // Check if stall is already reserved
-        if (stall.getIsReserved()) {
-            logger.error("Stall {} is already reserved", stall.getStallCode());
+        if (Boolean.TRUE.equals(stall.getIsReserved())) {
+            logger.error("Stall {} is already reserved", stall.getCode());
             throw new StallNotAvailableException(
-                String.format("Stall %s is already reserved", stall.getStallCode())
+                String.format("Stall %s is already reserved", stall.getCode())
             );
         }
 
@@ -522,9 +522,9 @@ public class ReservationService implements IReservationService {
             Reservation pending = existingPending.get();
             if (pending.getPaymentExpiresAt().isAfter(LocalDateTime.now())) {
                 logger.error("Stall {} is temporarily locked for payment until {}", 
-                    stall.getStallCode(), pending.getPaymentExpiresAt());
+                    stall.getCode(), pending.getPaymentExpiresAt());
                 throw new StallNotAvailableException(
-                    String.format("Stall %s is temporarily locked for payment. Please try again later.", stall.getStallCode())
+                    String.format("Stall %s is temporarily locked for payment. Please try again later.", stall.getCode())
                 );
             } else {
                 // Expired - auto-cancel it

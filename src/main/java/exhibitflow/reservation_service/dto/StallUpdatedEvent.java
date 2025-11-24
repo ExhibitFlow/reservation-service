@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.Instant;
 import java.util.List;
 
 /**
@@ -15,22 +16,12 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class StallUpdatedEvent {
-    private Long stallId;
-    private String stallCode;
-    private String size;
-    private Double price;
+    private Long id;
     private String code;
-    private String description;
-    private CoordinateDto location;
-    private List<List<Double>> boundary;
-    private Long timestamp;
-    
-    @Data
-    @NoArgsConstructor
-    @AllArgsConstructor
-    @Builder
-    public static class CoordinateDto {
-        private Double longitude;
-        private Double latitude;
-    }
+    private String size;
+    private String location;
+    private Double price;
+    private String status;
+    private Instant createdAt;
+    private Instant updatedAt;
 }

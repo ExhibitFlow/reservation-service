@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
  * Provides endpoints to retrieve exhibition venue maps with stall availability
  */
 @RestController
-@RequestMapping("/api/v1/venue")
+@RequestMapping("/api/v1/venue/map")
 @RequiredArgsConstructor
 @Slf4j
 public class VenueMapController {
@@ -23,7 +23,7 @@ public class VenueMapController {
      * Get complete venue map with all stalls
      * Shows available stalls and reserved stalls with spatial data
      */
-    @GetMapping("/map")
+    @GetMapping
     public ResponseEntity<VenueMapResponse> getVenueMap() {
         log.info("Fetching complete venue map");
         return buildResponse(venueMapService::getVenueMap);
@@ -32,7 +32,7 @@ public class VenueMapController {
     /**
      * Get venue map for a specific code
      */
-    @GetMapping("/map/code/{code}")
+    @GetMapping("/code/{code}")
     public ResponseEntity<VenueMapResponse> getVenueMapBycode(@PathVariable String code) {
         log.info("Fetching venue map for code: {}", code);
         return buildResponse(() -> venueMapService.getVenueMapByCode(code));
@@ -41,7 +41,7 @@ public class VenueMapController {
     /**
      * Get only available (unreserved) stalls on the map
      */
-    @GetMapping("/map/available")
+    @GetMapping("/available")
     public ResponseEntity<VenueMapResponse> getAvailableStallsMap() {
         log.info("Fetching available stalls map");
         return buildResponse(venueMapService::getAvailableStallsMap);
