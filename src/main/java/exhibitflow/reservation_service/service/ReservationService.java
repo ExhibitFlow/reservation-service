@@ -97,15 +97,17 @@ public class ReservationService implements IReservationService {
         StallDto stall = validateStall(request.getStallId());
         checkStallAvailability(stall, request.getStallId());
 
-        // Temporarily reserve the stall via Stall Service
+        // Hold the stall temporarily via Stall Service (status: HELD)
+        // This allows the user time to complete payment
         try {
-            StallDto reservedStall = stallServiceClient.reserveStall(request.getStallId());
-            if (reservedStall == null) {
-                throw new StallNotAvailableException("Failed to reserve stall. Please try again.");
+            StallDto heldStall = stallServiceClient.holdStall(request.getStallId());
+            if (heldStall == null) {
+                throw new StallNotAvailableException("Failed to hold stall. Please try again.");
             }
+            logger.info("Stall {} held successfully, waiting for payment completion", request.getStallId());
         } catch (Exception e) {
-            logger.error("Failed to reserve stall {}: {}", request.getStallId(), e.getMessage());
-            throw new StallNotAvailableException("Failed to reserve stall. Please try again.");
+            logger.error("Failed to hold stall {}: {}", request.getStallId(), e.getMessage());
+            throw new StallNotAvailableException("Failed to hold stall. Please try again.");
         }
 
         try {
@@ -182,6 +184,18 @@ public class ReservationService implements IReservationService {
             throw new PaymentExpiredException("Payment window has expired. Please create a new reservation.");
         }
         
+        // Reserve the stall (change status from HELD to RESERVED)
+        try {
+            StallDto reservedStall = stallServiceClient.reserveStall(reservation.getStallId());
+            if (reservedStall == null) {
+                throw new ExternalServiceException("Failed to confirm stall reservation. Please contact support.");
+            }
+            logger.info("Stall {} reserved successfully after payment", reservation.getStallId());
+        } catch (Exception e) {
+            logger.error("Failed to reserve stall {} after payment: {}", reservation.getStallId(), e.getMessage());
+            throw new ExternalServiceException("Failed to confirm stall reservation. Please contact support.");
+        }
+
         // Update to CONFIRMED
         reservation.setStatus(Reservation.ReservationStatus.CONFIRMED);
         reservation.setPaymentCompletedAt(LocalDateTime.now());

@@ -1,12 +1,17 @@
 package exhibitflow.reservation_service.config;
 
+import exhibitflow.reservation_service.constants.HeaderConstants;
 import feign.Logger;
 import feign.Request;
+import feign.RequestInterceptor;
 import feign.Retryer;
 import feign.codec.ErrorDecoder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -58,5 +63,24 @@ public class FeignClientConfig {
     @Bean
     public ErrorDecoder errorDecoder() {
         return new FeignClientErrorDecoder();
+    }
+
+    /**
+     * Request interceptor to forward Authorization header to external services
+     * This allows the Stall Service and User Service to perform role-based authorization
+     */
+    @Bean
+    public RequestInterceptor authorizationHeaderInterceptor() {
+        return requestTemplate -> {
+            ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            if (attributes != null) {
+                HttpServletRequest request = attributes.getRequest();
+                String authHeader = request.getHeader(HeaderConstants.AUTHORIZATION);
+
+                if (authHeader != null && !authHeader.isEmpty()) {
+                    requestTemplate.header(HeaderConstants.AUTHORIZATION, authHeader);
+                }
+            }
+        };
     }
 }

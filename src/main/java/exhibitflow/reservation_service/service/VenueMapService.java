@@ -45,7 +45,8 @@ public class VenueMapService {
     public VenueMapResponse getVenueMapByCode(String code) {
         log.info("Fetching venue map for code: {}", code);
         
-        List<StallDto> stalls = stallServiceClient.getStallsByCode(code);
+        StallDto stall = stallServiceClient.getStallByCode(code);
+        List<StallDto> stalls = stall != null ? List.of(stall) : List.of();
         return buildVenueMapResponse(stalls);
     }
 

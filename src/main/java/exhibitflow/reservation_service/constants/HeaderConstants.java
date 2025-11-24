@@ -16,6 +16,12 @@ public final class HeaderConstants {
      */
     public static final String USER_ID = "X-User-Id";
     
+    /**
+     * Header name for JWT authorization token
+     * Used for role-based authorization with external services
+     */
+    public static final String AUTHORIZATION = "Authorization";
+
     private HeaderConstants() {
         // Prevent instantiation
     }

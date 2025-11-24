@@ -74,7 +74,7 @@ class ReservationControllerIntegrationTest {
 
         testStall = StallDto.builder()
                 .id(1L)
-                .stallCode("A-001")
+                .code("A-001")
                 .size("10x10")
                 .price(500.00)
                 .isReserved(false)
@@ -91,13 +91,14 @@ class ReservationControllerIntegrationTest {
 
         // Mock Stall Service responses
         when(stallServiceClient.getStallById(1L)).thenReturn(testStall);
-        when(stallServiceClient.reserveStall(1L)).thenReturn(
+        when(stallServiceClient.holdStall(1L)).thenReturn(
                 StallDto.builder()
                         .id(1L)
-                        .stallCode("A-001")
+                        .code("A-001")
                         .size("10x10")
                         .price(500.00)
-                        .isReserved(true)
+                        .status("HELD")
+                        .isReserved(false)
                         .build()
         );
 
@@ -122,7 +123,7 @@ class ReservationControllerIntegrationTest {
         // Verify external service calls
         verify(userServiceClient, times(1)).getUserById(1L);
         verify(stallServiceClient, times(1)).getStallById(1L);
-        verify(stallServiceClient, times(1)).reserveStall(1L);
+        verify(stallServiceClient, times(1)).holdStall(1L);
     }
 
     @Test
@@ -160,7 +161,7 @@ class ReservationControllerIntegrationTest {
         // Mock Stall Service to return already reserved stall
         StallDto reservedStall = StallDto.builder()
                 .id(1L)
-                .stallCode("A-001")
+                .code("A-001")
                 .size("10x10")
                 .price(500.00)
                 .isReserved(true)
@@ -181,13 +182,14 @@ class ReservationControllerIntegrationTest {
         // Mock services for reservation creation
         when(userServiceClient.getUserById(1L)).thenReturn(testUser);
         when(stallServiceClient.getStallById(1L)).thenReturn(testStall);
-        when(stallServiceClient.reserveStall(1L)).thenReturn(
+        when(stallServiceClient.holdStall(1L)).thenReturn(
                 StallDto.builder()
                         .id(1L)
-                        .stallCode("A-001")
+                        .code("A-001")
                         .size("10x10")
                         .price(500.00)
-                        .isReserved(true)
+                        .status("HELD")
+                        .isReserved(false)
                         .build()
         );
 
@@ -203,6 +205,18 @@ class ReservationControllerIntegrationTest {
 
         // Extract reservation ID
         Long reservationId = objectMapper.readTree(createResponse).get("id").asLong();
+
+        // Mock reserveStall for payment completion
+        when(stallServiceClient.reserveStall(1L)).thenReturn(
+                StallDto.builder()
+                        .id(1L)
+                        .code("A-001")
+                        .size("10x10")
+                        .price(500.00)
+                        .status("RESERVED")
+                        .isReserved(true)
+                        .build()
+        );
 
         // Complete payment
         mockMvc.perform(post("/api/v1/reservations/" + reservationId + "/complete-payment")
@@ -258,7 +272,7 @@ class ReservationControllerIntegrationTest {
         // Mock stall service responses
         StallDto stall1 = StallDto.builder()
                 .id(1L)
-                .stallCode("A-001")
+                .code("A-001")
                 .size("10x10")
                 .price(500.00)
                 .isReserved(true)
@@ -266,7 +280,7 @@ class ReservationControllerIntegrationTest {
         
         StallDto stall2 = StallDto.builder()
                 .id(2L)
-                .stallCode("A-002")
+                .code("A-002")
                 .size("15x15")
                 .price(750.00)
                 .isReserved(true)
@@ -307,7 +321,7 @@ class ReservationControllerIntegrationTest {
         // Mock Stall Service responses
         StallDto stall1 = StallDto.builder()
                 .id(1L)
-                .stallCode("A-001")
+                .code("A-001")
                 .size("10x10")
                 .price(500.00)
                 .isReserved(true)
@@ -315,7 +329,7 @@ class ReservationControllerIntegrationTest {
         
         StallDto stall2 = StallDto.builder()
                 .id(2L)
-                .stallCode("A-002")
+                .code("A-002")
                 .size("15x15")
                 .price(750.00)
                 .isReserved(true)
@@ -359,12 +373,16 @@ class ReservationControllerIntegrationTest {
 
         // Mock Stall Service responses
         when(stallServiceClient.getStallById(1L)).thenReturn(testStall);
-        when(stallServiceClient.reserveStall(1L)).thenReturn(
+        when(stallServiceClient.holdStall(1L)).thenReturn(
                 StallDto.builder()
                         .id(1L)
-                        .stallCode("A-001")
+                        .code("A-001")
                         .size("10x10")
                         .price(500.00)
+                        .status("HELD")
+                        .isReserved(false)
+                        .build()
+        );
                         .isReserved(true)
                         .build()
         );

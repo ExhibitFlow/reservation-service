@@ -6,6 +6,7 @@ import exhibitflow.reservation_service.dto.StallDto;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
@@ -31,19 +32,19 @@ public interface StallServiceClient {
     /**
      * Reserve a stall (mark as reserved)
      */
-    @PutMapping("/{stallId}/reserve")
+    @PostMapping("/{stallId}/reserve")
     StallDto reserveStall(@PathVariable("stallId") Long stallId);
 
     /**
      * Hold a stall (temporarily hold for reservation)
      */
-    @PutMapping("/{stallId}/hold")
+    @PostMapping("/{stallId}/hold")
     StallDto holdStall(@PathVariable("stallId") Long stallId);
 
     /**
      * Release a stall reservation (mark as available)
      */
-    @PutMapping("/{stallId}/release")
+    @PostMapping("/{stallId}/release")
     StallDto releaseStall(@PathVariable("stallId") Long stallId);
     
     /**
@@ -57,8 +58,8 @@ public interface StallServiceClient {
 
 
     /**
-     * Get stalls by code
+     * Get stall by code
      */
     @GetMapping("/code/{code}")
-    List<StallDto> getStallsByCode(@PathVariable("code") String code);
+    StallDto getStallByCode(@PathVariable("code") String code);
 }

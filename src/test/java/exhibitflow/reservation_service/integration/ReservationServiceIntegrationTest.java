@@ -68,7 +68,7 @@ class ReservationServiceIntegrationTest {
 
         testStall = StallDto.builder()
                 .id(1L)
-                .stallCode("A-001")
+                .code("A-001")
                 .size("10x10")
                 .price(500.00)
                 .isReserved(false)
@@ -85,13 +85,14 @@ class ReservationServiceIntegrationTest {
 
         // Mock Stall Service responses
         when(stallServiceClient.getStallById(1L)).thenReturn(testStall);
-        when(stallServiceClient.reserveStall(1L)).thenReturn(
+        when(stallServiceClient.holdStall(1L)).thenReturn(
                 StallDto.builder()
                         .id(1L)
-                        .stallCode("A-001")
+                        .code("A-001")
                         .size("10x10")
                         .price(500.00)
-                        .isReserved(true)
+                        .status("HELD")
+                        .isReserved(false)
                         .build()
         );
 
@@ -112,7 +113,7 @@ class ReservationServiceIntegrationTest {
         // Verify external service calls
         verify(userServiceClient, times(1)).getUserById(1L);
         verify(stallServiceClient, times(1)).getStallById(1L);
-        verify(stallServiceClient, times(1)).reserveStall(1L);
+        verify(stallServiceClient, times(1)).holdStall(1L);
 
         // Verify database
         List<Reservation> reservations = reservationRepository.findAll();
@@ -132,7 +133,7 @@ class ReservationServiceIntegrationTest {
 
         // Verify no stall service calls were made
         verify(stallServiceClient, never()).getStallById(anyLong());
-        verify(stallServiceClient, never()).reserveStall(anyLong());
+        verify(stallServiceClient, never()).holdStall(anyLong());
     }
 
     @Test
@@ -150,8 +151,8 @@ class ReservationServiceIntegrationTest {
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Stall not found");
 
-        // Verify no stall was reserved
-        verify(stallServiceClient, never()).reserveStall(anyLong());
+        // Verify no stall was held
+        verify(stallServiceClient, never()).holdStall(anyLong());
     }
 
     @Test
@@ -162,7 +163,7 @@ class ReservationServiceIntegrationTest {
         // Mock Stall Service to return already reserved stall
         StallDto reservedStall = StallDto.builder()
                 .id(1L)
-                .stallCode("A-001")
+                .code("A-001")
                 .size("10x10")
                 .price(500.00)
                 .isReserved(true)
@@ -174,8 +175,8 @@ class ReservationServiceIntegrationTest {
                 .isInstanceOf(StallNotAvailableException.class)
                 .hasMessageContaining("already reserved");
 
-        // Verify stall was not reserved
-        verify(stallServiceClient, never()).reserveStall(anyLong());
+        // Verify stall was not held
+        verify(stallServiceClient, never()).holdStall(anyLong());
     }
 
     @Test
@@ -197,7 +198,7 @@ class ReservationServiceIntegrationTest {
         // Mock new stall as available
         StallDto newStall = StallDto.builder()
                 .id(4L)
-                .stallCode("A-004")
+                .code("A-004")
                 .size("10x10")
                 .price(500.00)
                 .isReserved(false)
@@ -211,8 +212,8 @@ class ReservationServiceIntegrationTest {
                 .isInstanceOf(ReservationLimitExceededException.class)
                 .hasMessageContaining("Maximum reservation limit");
 
-        // Verify no stall service calls for reservation
-        verify(stallServiceClient, never()).reserveStall(anyLong());
+        // Verify no stall service calls for hold
+        verify(stallServiceClient, never()).holdStall(anyLong());
     }
 
     @Test
@@ -222,13 +223,14 @@ class ReservationServiceIntegrationTest {
 
         // Mock Stall Service responses
         when(stallServiceClient.getStallById(1L)).thenReturn(testStall);
-        when(stallServiceClient.reserveStall(1L)).thenReturn(
+        when(stallServiceClient.holdStall(1L)).thenReturn(
                 StallDto.builder()
                         .id(1L)
-                        .stallCode("A-001")
+                        .code("A-001")
                         .size("10x10")
                         .price(500.00)
-                        .isReserved(true)
+                        .status("HELD")
+                        .isReserved(false)
                         .build()
         );
 
@@ -241,6 +243,16 @@ class ReservationServiceIntegrationTest {
         // Mock services for payment completion
         when(userServiceClient.getUserById(1L)).thenReturn(testUser);
         when(stallServiceClient.getStallById(1L)).thenReturn(testStall);
+        when(stallServiceClient.reserveStall(1L)).thenReturn(
+                StallDto.builder()
+                        .id(1L)
+                        .code("A-001")
+                        .size("10x10")
+                        .price(500.00)
+                        .status("RESERVED")
+                        .isReserved(true)
+                        .build()
+        );
 
         // Complete payment
         ReservationResponse completed = reservationService.completePayment(created.getId(), 1L);
@@ -265,13 +277,14 @@ class ReservationServiceIntegrationTest {
 
         // Mock Stall Service responses
         when(stallServiceClient.getStallById(1L)).thenReturn(testStall);
-        when(stallServiceClient.reserveStall(1L)).thenReturn(
+        when(stallServiceClient.holdStall(1L)).thenReturn(
                 StallDto.builder()
                         .id(1L)
-                        .stallCode("A-001")
+                        .code("A-001")
                         .size("10x10")
                         .price(500.00)
-                        .isReserved(true)
+                        .status("HELD")
+                        .isReserved(false)
                         .build()
         );
 
@@ -332,7 +345,7 @@ class ReservationServiceIntegrationTest {
         // Mock stall service responses
         StallDto stall1 = StallDto.builder()
                 .id(1L)
-                .stallCode("A-001")
+                .code("A-001")
                 .size("10x10")
                 .price(500.00)
                 .isReserved(true)
@@ -340,7 +353,7 @@ class ReservationServiceIntegrationTest {
         
         StallDto stall2 = StallDto.builder()
                 .id(2L)
-                .stallCode("A-002")
+                .code("A-002")
                 .size("15x15")
                 .price(750.00)
                 .isReserved(true)
@@ -370,13 +383,14 @@ class ReservationServiceIntegrationTest {
 
         // Mock Stall Service responses
         when(stallServiceClient.getStallById(1L)).thenReturn(testStall);
-        when(stallServiceClient.reserveStall(1L)).thenReturn(
+        when(stallServiceClient.holdStall(1L)).thenReturn(
                 StallDto.builder()
                         .id(1L)
-                        .stallCode("A-001")
+                        .code("A-001")
                         .size("10x10")
                         .price(500.00)
-                        .isReserved(true)
+                        .status("HELD")
+                        .isReserved(false)
                         .build()
         );
 
@@ -441,7 +455,7 @@ class ReservationServiceIntegrationTest {
         // Mock Stall Service responses
         StallDto stall1 = StallDto.builder()
                 .id(1L)
-                .stallCode("A-001")
+                .code("A-001")
                 .size("10x10")
                 .price(500.00)
                 .isReserved(true)
@@ -449,7 +463,7 @@ class ReservationServiceIntegrationTest {
         
         StallDto stall2 = StallDto.builder()
                 .id(2L)
-                .stallCode("A-002")
+                .code("A-002")
                 .size("15x15")
                 .price(750.00)
                 .isReserved(true)
