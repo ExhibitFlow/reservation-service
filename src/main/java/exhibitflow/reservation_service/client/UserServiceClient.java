@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.PathVariable;
     name = "user-service",
     url = "${services.user-service.url}",
     configuration = FeignClientConfig.class,
-    path = "/api/users"
+    path = "/api/v1/users"
 )
 public interface UserServiceClient {
 
