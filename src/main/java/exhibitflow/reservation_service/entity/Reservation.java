@@ -35,8 +35,6 @@ public class Reservation {
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    @Lob
-    @Basic(fetch = FetchType.EAGER)
     @Column(columnDefinition = "TEXT")
     private String qrCodeBase64;
 
