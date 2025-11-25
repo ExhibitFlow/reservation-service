@@ -263,6 +263,7 @@ public class ReservationService implements IReservationService {
      * Get all reservations for a specific user
      */
     @Override
+    @Transactional(readOnly = true)
     public List<ReservationResponse> getUserReservations(String userId) {
         MDCUtil.setUserId(userId);
         logger.debug("Fetching reservations for user: {}", userId);
@@ -279,6 +280,7 @@ public class ReservationService implements IReservationService {
     /**
      * Get all reservations (admin function)
      */
+    @Transactional(readOnly = true)
     public List<ReservationResponse> getAllReservations() {
         logger.debug("Fetching all reservations");
         List<Reservation> reservations = reservationRepository.findAll();
@@ -316,6 +318,7 @@ public class ReservationService implements IReservationService {
      * Get a specific reservation by ID
      */
     @Override
+    @Transactional(readOnly = true)
     public ReservationResponse getReservationById(Long reservationId, String userId) {
         MDCUtil.setUserId(userId);
         MDCUtil.setReservationId(reservationId);
