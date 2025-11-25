@@ -5,11 +5,12 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.Instant;
-import java.util.List;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 /**
  * DTO for Stall data received from Stall Service
+ * Must match the StallResponse structure from Stall Service
  */
 @Data
 @NoArgsConstructor
@@ -18,13 +19,10 @@ import java.util.List;
 public class StallDto {
     private Long id;
     private String code;
-    private String size;
-    private String location;  // Changed from CoordinateDto to String to match API response
-    private Double price;
-    private String status;
-    private Instant createdAt;
-    private Instant updatedAt;
-    private String description;
-    private List<List<Double>> boundary;
-    private Boolean isReserved;
+    private String size;  // StallSize enum serialized as string
+    private String location;
+    private BigDecimal price;  // Changed from Double to BigDecimal
+    private String status;  // StallStatus enum serialized as string
+    private LocalDateTime createdAt;  // Changed from Instant to LocalDateTime
+    private LocalDateTime updatedAt;  // Changed from Instant to LocalDateTime
 }

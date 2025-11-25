@@ -133,7 +133,7 @@ public class ReservationService implements IReservationService {
                     .reservationId(savedReservation.getId())
                     .userId(userId)
                     .stallId(request.getStallId())
-                    .totalPrice(stall.getPrice())
+                    .totalPrice(stall.getPrice() != null ? stall.getPrice().doubleValue() : 0.0)
                     .createdAt(savedReservation.getCreatedAt())
                     .paymentDeadline(savedReservation.getPaymentExpiresAt())
                     .build();
@@ -222,7 +222,7 @@ public class ReservationService implements IReservationService {
                 .reservationId(reservationId)
                 .userId(userId)
                 .stallId(reservation.getStallId())
-                .amount(stall.getPrice())
+                .amount(stall.getPrice() != null ? stall.getPrice().doubleValue() : 0.0)
                 .paymentMethod("ONLINE")
                 .paidAt(reservation.getPaymentCompletedAt())
                 .build();
@@ -248,7 +248,7 @@ public class ReservationService implements IReservationService {
                         .notes("Payment completed successfully")
                         .build())
                     .qrCode(qrCodeBase64)
-                    .paidAmount(stall.getPrice() != null ? stall.getPrice() : 0.0)
+                    .paidAmount(stall.getPrice() != null ? stall.getPrice().doubleValue() : 0.0)
                     .build())
                 .build();
             kafkaProducerService.publishStallReserved(stallEvent);
@@ -541,11 +541,11 @@ public class ReservationService implements IReservationService {
      * Helper method to check stall availability
      */
     private void checkStallAvailability(StallDto stall, Long stallId) {
-        // Check if stall is already reserved
-        if (Boolean.TRUE.equals(stall.getIsReserved())) {
-            logger.error("Stall {} is already reserved", stall.getCode());
+        // Check if stall is already reserved or held
+        if ("RESERVED".equals(stall.getStatus()) || "HELD".equals(stall.getStatus())) {
+            logger.error("Stall {} is not available (status: {})", stall.getCode(), stall.getStatus());
             throw new StallNotAvailableException(
-                String.format("Stall %s is already reserved", stall.getCode())
+                String.format("Stall %s is not available (status: %s)", stall.getCode(), stall.getStatus())
             );
         }
 

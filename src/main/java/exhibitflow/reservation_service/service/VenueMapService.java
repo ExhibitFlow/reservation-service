@@ -121,7 +121,7 @@ public class VenueMapService {
     }
 
     /**
-     * Convert StallDto to StallMapDto
+     * Convert StallDto to StallMapDto for map display
      * The reservation status is determined locally, overriding what Stall service reports
      */
     private StallMapDto convertToStallMapDto(StallDto stall, boolean isReserved) {
@@ -129,11 +129,11 @@ public class VenueMapService {
                 .id(stall.getId())
                 .stallCode(stall.getCode())
                 .size(stall.getSize())
-                .price(stall.getPrice())
+                .price(stall.getPrice() != null ? stall.getPrice().doubleValue() : 0.0)
                 .isReserved(isReserved)  // Use local reservation status
                 .code(stall.getCode())
-                .description(stall.getDescription())
-                .boundary(stall.getBoundary())
+                .description(null)  // No longer provided by Stall Service
+                .boundary(null)  // No longer provided by Stall Service
                 .location(null)  // Location is now a string in StallDto, not coordinates for map
                 .build();
     }

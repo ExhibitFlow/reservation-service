@@ -18,6 +18,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -71,8 +72,8 @@ class ReservationServiceIntegrationTest {
                 .id(1L)
                 .code("A-001")
                 .size("10x10")
-                .price(500.00)
-                .isReserved(false)
+                .price(new BigDecimal("500.00"))
+                
                 .build();
 
         testRequest = new CreateReservationRequest();
@@ -91,9 +92,9 @@ class ReservationServiceIntegrationTest {
                         .id(1L)
                         .code("A-001")
                         .size("10x10")
-                        .price(500.00)
+                        .price(new BigDecimal("500.00"))
                         .status("HELD")
-                        .isReserved(false)
+                        
                         .build()
         );
 
@@ -166,8 +167,8 @@ class ReservationServiceIntegrationTest {
                 .id(1L)
                 .code("A-001")
                 .size("10x10")
-                .price(500.00)
-                .isReserved(true)
+                .price(new BigDecimal("500.00"))
+                
                 .build();
         when(stallServiceClient.getStallById(1L)).thenReturn(reservedStall);
 
@@ -201,8 +202,8 @@ class ReservationServiceIntegrationTest {
                 .id(4L)
                 .code("A-004")
                 .size("10x10")
-                .price(500.00)
-                .isReserved(false)
+                .price(new BigDecimal("500.00"))
+                
                 .build();
         when(stallServiceClient.getStallById(4L)).thenReturn(newStall);
 
@@ -229,9 +230,9 @@ class ReservationServiceIntegrationTest {
                         .id(1L)
                         .code("A-001")
                         .size("10x10")
-                        .price(500.00)
+                        .price(new BigDecimal("500.00"))
                         .status("HELD")
-                        .isReserved(false)
+                        
                         .build()
         );
 
@@ -249,9 +250,9 @@ class ReservationServiceIntegrationTest {
                         .id(1L)
                         .code("A-001")
                         .size("10x10")
-                        .price(500.00)
+                        .price(new BigDecimal("500.00"))
                         .status("RESERVED")
-                        .isReserved(true)
+                        
                         .build()
         );
 
@@ -283,9 +284,9 @@ class ReservationServiceIntegrationTest {
                         .id(1L)
                         .code("A-001")
                         .size("10x10")
-                        .price(500.00)
+                        .price(new BigDecimal("500.00"))
                         .status("HELD")
-                        .isReserved(false)
+                        
                         .build()
         );
 
@@ -348,16 +349,16 @@ class ReservationServiceIntegrationTest {
                 .id(1L)
                 .code("A-001")
                 .size("10x10")
-                .price(500.00)
-                .isReserved(true)
+                .price(new BigDecimal("500.00"))
+                
                 .build();
         
         StallDto stall2 = StallDto.builder()
                 .id(2L)
                 .code("A-002")
                 .size("15x15")
-                .price(750.00)
-                .isReserved(true)
+                .price(new BigDecimal("750.00"))
+                
                 .build();
 
         when(stallServiceClient.getStallById(1L)).thenReturn(stall1);
@@ -389,9 +390,9 @@ class ReservationServiceIntegrationTest {
                         .id(1L)
                         .code("A-001")
                         .size("10x10")
-                        .price(500.00)
+                        .price(new BigDecimal("500.00"))
                         .status("HELD")
-                        .isReserved(false)
+                        
                         .build()
         );
 
@@ -458,16 +459,16 @@ class ReservationServiceIntegrationTest {
                 .id(1L)
                 .code("A-001")
                 .size("10x10")
-                .price(500.00)
-                .isReserved(true)
+                .price(new BigDecimal("500.00"))
+                
                 .build();
         
         StallDto stall2 = StallDto.builder()
                 .id(2L)
                 .code("A-002")
                 .size("15x15")
-                .price(750.00)
-                .isReserved(true)
+                .price(new BigDecimal("750.00"))
+                
                 .build();
 
         when(stallServiceClient.getStallById(1L)).thenReturn(stall1);
