@@ -7,9 +7,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
-/**
- * Event published when a reservation is cancelled.
- */
+
 @Data
 @Builder
 @NoArgsConstructor

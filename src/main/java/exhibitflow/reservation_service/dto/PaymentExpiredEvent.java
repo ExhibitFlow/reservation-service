@@ -7,9 +7,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
-/**
- * Event published when payment expires for a reservation.
- */
+
 @Data
 @Builder
 @NoArgsConstructor

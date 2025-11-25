@@ -9,10 +9,7 @@ import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
-/**
- * Reservation entity for microservices architecture
- * Stores only IDs of User and Stall (managed by separate services)
- */
+
 @Entity
 @Table(name = "reservations")
 @Data

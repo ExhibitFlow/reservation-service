@@ -5,9 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * Simplified reservation summary for list responses
- */
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

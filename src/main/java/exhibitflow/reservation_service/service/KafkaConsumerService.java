@@ -8,14 +8,7 @@ import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Service;
 
-/**
- * Example Kafka consumer service that listens to reservation events.
- * This demonstrates how to consume events published by the reservation service.
- * In a real microservices architecture, these consumers would typically be in separate services.
- * 
- * Error handling: All exceptions are automatically handled by the configured error handler
- * with retry logic and Dead Letter Queue (DLQ) support.
- */
+
 @Service
 @Slf4j
 public class KafkaConsumerService {
@@ -43,10 +36,7 @@ public class KafkaConsumerService {
             event.getPaymentDeadline());
     }
 
-    /**
-     * Listen to payment completed events.
-     * Exceptions are handled by the configured error handler with retry and DLQ
-     */
+
     @KafkaListener(
         topics = "${kafka.topics.payment-completed}",
         groupId = "${spring.kafka.consumer.group-id}",
@@ -66,10 +56,7 @@ public class KafkaConsumerService {
             event.getPaymentMethod());
     }
 
-    /**
-     * Listen to reservation cancelled events.
-     * Exceptions are handled by the configured error handler with retry and DLQ
-     */
+   
     @KafkaListener(
         topics = "${kafka.topics.reservation-cancelled}",
         groupId = "${spring.kafka.consumer.group-id}",
@@ -88,10 +75,7 @@ public class KafkaConsumerService {
             event.getCancellationReason());
     }
 
-    /**
-     * Listen to payment expired events.
-     * Exceptions are handled by the configured error handler with retry and DLQ
-     */
+   
     @KafkaListener(
         topics = "${kafka.topics.payment-expired}",
         groupId = "${spring.kafka.consumer.group-id}",

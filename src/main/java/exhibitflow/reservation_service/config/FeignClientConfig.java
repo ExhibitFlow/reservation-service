@@ -65,10 +65,7 @@ public class FeignClientConfig {
         return new FeignClientErrorDecoder();
     }
 
-    /**
-     * Request interceptor to forward Authorization header to external services
-     * This allows the Stall Service and User Service to perform role-based authorization
-     */
+ 
     @Bean
     public RequestInterceptor authorizationHeaderInterceptor() {
         return requestTemplate -> {

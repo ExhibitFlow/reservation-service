@@ -11,10 +11,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
-/**
- * Filter to add MDC context to all requests
- * Ensures request tracking across the application
- */
+
 @Component
 public class MDCFilter extends OncePerRequestFilter {
 

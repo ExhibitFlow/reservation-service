@@ -8,9 +8,7 @@ import lombok.NoArgsConstructor;
 import java.time.Instant;
 import java.util.List;
 
-/**
- * Event published by Stall Service when a new stall is created
- */
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

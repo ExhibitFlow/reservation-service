@@ -21,11 +21,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-/**
- * Reservation Controller for microservices architecture
- * Expects userId to be passed from API Gateway (extracted from JWT)
- * Version 1 API - supports pagination and enhanced features
- */
+
 @RestController
 @RequestMapping("/api/v1/reservations")
 @Tag(name = "Reservations", description = "Endpoints for managing stall reservations")
@@ -40,10 +36,7 @@ public class ReservationController {
         this.reservationService = reservationService;
     }
 
-    /**
-     * Create a new reservation
-     * Creates a temporary lock (5 minutes) for payment
-     */
+
     @PostMapping
     @Operation(
         summary = "Create a new reservation",
@@ -58,10 +51,7 @@ public class ReservationController {
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
-    /**
-     * Complete payment for a pending reservation
-     * Confirms reservation and generates QR code
-     */
+
     @PostMapping("/{reservationId}/complete-payment")
     @Operation(
         summary = "Complete payment for reservation",

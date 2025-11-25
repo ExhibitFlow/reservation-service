@@ -1,13 +1,4 @@
--- PostgreSQL Database Setup Script for Reservation Service
--- Database: reservation_db
--- Created: 2025-11-13 (Migrated from MySQL)
--- Updated: 2025-11-22 (Removed stalls table - managed by separate Stall service)
 
--- Create database if it doesn't exist
--- Run this as postgres superuser or database admin
--- CREATE DATABASE reservation_db WITH ENCODING 'UTF8' LC_COLLATE='en_US.UTF-8' LC_CTYPE='en_US.UTF-8';
-
--- Connect to the database
 \c reservation_db;
 
 -- Drop existing tables if they exist (for clean setup)
@@ -40,11 +31,6 @@ CREATE INDEX idx_payment_expires ON reservations(payment_expires_at);
 CREATE INDEX idx_user_stall ON reservations(user_id, stall_id);
 CREATE INDEX idx_status_stall ON reservations(status, stall_id);
 
--- Create a user for the application (optional - update credentials as needed)
--- CREATE USER reservation_user WITH PASSWORD 'your_password';
--- GRANT ALL PRIVILEGES ON DATABASE reservation_db TO reservation_user;
--- GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO reservation_user;
--- GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO reservation_user;
 
 -- Display table structure
 \d+ reservations;

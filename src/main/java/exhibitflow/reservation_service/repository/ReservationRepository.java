@@ -10,10 +10,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Repository for Reservation entity in microservices architecture
- * Uses userId instead of User entity references
- */
+
 @Repository
 public interface ReservationRepository extends JpaRepository<Reservation, Long> {
     

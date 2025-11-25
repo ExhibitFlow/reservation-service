@@ -2,9 +2,7 @@ package exhibitflow.reservation_service.service;
 
 import exhibitflow.reservation_service.dto.*;
 
-/**
- * Interface for publishing reservation events to Kafka topics.
- */
+
 public interface IKafkaProducerService {
     
     /**

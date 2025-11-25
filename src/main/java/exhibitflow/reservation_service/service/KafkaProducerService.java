@@ -10,9 +10,7 @@ import org.springframework.messaging.Message;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Service;
 
-/**
- * Service for publishing reservation events to Kafka topics.
- */
+
 @Service
 @RequiredArgsConstructor
 @Slf4j

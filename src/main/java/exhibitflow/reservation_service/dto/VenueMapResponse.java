@@ -7,9 +7,7 @@ import lombok.NoArgsConstructor;
 
 import java.util.List;
 
-/**
- * Response DTO for venue map with all stalls and their availability
- */
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

@@ -6,9 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * Request DTO for QR code generation options
- */
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

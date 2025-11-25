@@ -124,16 +124,14 @@ public class QRCodeGeneratorService implements IQRCodeGeneratorService {
         }
     }
 
-    /**
-     * Parse error correction level from string
-     */
+
     private ErrorCorrectionLevel parseErrorCorrectionLevel(String level) {
         return switch (level.toUpperCase()) {
             case "L" -> ErrorCorrectionLevel.L;
             case "M" -> ErrorCorrectionLevel.M;
             case "Q" -> ErrorCorrectionLevel.Q;
             case "H" -> ErrorCorrectionLevel.H;
-            default -> ErrorCorrectionLevel.H; // Default to highest correction
+            default -> ErrorCorrectionLevel.H;
         };
     }
 }

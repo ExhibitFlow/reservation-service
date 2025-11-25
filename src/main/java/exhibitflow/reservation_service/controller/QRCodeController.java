@@ -31,11 +31,7 @@ public class QRCodeController {
     @Autowired
     private ReservationService reservationService;
 
-    
-    /**
-     * Regenerate QR code for a reservation
-     * GET /api/v1/qrcode/regenerate/{reservationId}
-     */
+
     @GetMapping("/regenerate/{reservationId}")
     @Operation(
         summary = "Regenerate QR code",

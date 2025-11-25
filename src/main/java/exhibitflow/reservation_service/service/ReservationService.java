@@ -32,12 +32,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-/**
- * Reservation Service for microservices architecture
- * Communicates with User and Stall services via REST
- * Generates QR codes using ZXing library
- * Implements 5-minute payment lock mechanism
- */
+
 @Service
 public class ReservationService implements IReservationService {
 
@@ -67,11 +62,7 @@ public class ReservationService implements IReservationService {
         this.kafkaProducerService = kafkaProducerService;
     }
 
-    /**
-     * Creates a new reservation with payment lock (5 minutes)
-     * Stall is temporarily locked until payment is completed
-     * Communicates with User Service, Stall Service (QR code generated after payment)
-     */
+  
     @Override
     @Transactional
     public ReservationResponse createReservation(CreateReservationRequest request, String userId) {
@@ -150,10 +141,7 @@ public class ReservationService implements IReservationService {
         }
     }
 
-    /**
-     * Complete payment for a pending reservation
-     * Generates QR code and confirms the reservation
-     */
+  
     @Override
     @Transactional
     public ReservationResponse completePayment(Long reservationId, String userId) {

@@ -12,9 +12,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 
-/**
- * Feign client for communicating with Stall Service
- */
 @FeignClient(
     name = "stall-service",
     url = "${services.stall-service.url}",

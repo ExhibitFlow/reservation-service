@@ -10,10 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-/**
- * REST Controller for venue map operations
- * Provides endpoints to retrieve exhibition venue maps with stall availability
- */
+
 @RestController
 @RequestMapping("/api/v1/venue/map")
 @RequiredArgsConstructor
@@ -24,10 +21,7 @@ public class VenueMapController {
 
     private final VenueMapService venueMapService;
 
-    /**
-     * Get complete venue map with all stalls
-     * Shows available stalls and reserved stalls with spatial data
-     */
+
     @GetMapping
     @Operation(
         summary = "Get complete venue map",

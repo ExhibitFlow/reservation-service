@@ -11,10 +11,7 @@ import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
 
-/**
- * Kafka consumer for stall-related events from Stall Service
- * Handles cache invalidation when stalls are created or updated
- */
+
 @Component
 @RequiredArgsConstructor
 @Slf4j
@@ -22,11 +19,7 @@ public class StallEventConsumer {
 
     private final CacheManager cacheManager;
 
-    /**
-     * Handle stall created events
-     * Clears the stalls cache to ensure fresh data on next fetch
-     * Exceptions are handled by the configured error handler with retry and DLQ
-     */
+
     @KafkaListener(
         topics = "${kafka.topics.stall-created}",
         groupId = "${spring.kafka.consumer.group-id}",
@@ -47,11 +40,7 @@ public class StallEventConsumer {
                 event.getCode(), event.getId());
     }
 
-    /**
-     * Handle stall updated events
-     * Clears specific stall from cache to ensure fresh data on next fetch
-     * Exceptions are handled by the configured error handler with retry and DLQ
-     */
+
     @KafkaListener(
         topics = "${kafka.topics.stall-updated}",
         groupId = "${spring.kafka.consumer.group-id}",

@@ -7,9 +7,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
-/**
- * Event published when payment is completed for a reservation.
- */
+
 @Data
 @Builder
 @NoArgsConstructor

@@ -7,9 +7,7 @@ import lombok.NoArgsConstructor;
 
 import java.util.List;
 
-/**
- * DTO for displaying stall on venue map with spatial data
- */
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -23,13 +21,11 @@ public class StallMapDto {
     private String code;
     private String description;
     
-    // Spatial data as GeoJSON-compatible structures
-    private CoordinateDto location;  // Center point
-    private List<List<Double>> boundary;  // Polygon coordinates
     
-    /**
-     * Coordinate DTO for point locations
-     */
+    private CoordinateDto location;  
+    private List<List<Double>> boundary;
+    
+
     @Data
     @NoArgsConstructor
     @AllArgsConstructor

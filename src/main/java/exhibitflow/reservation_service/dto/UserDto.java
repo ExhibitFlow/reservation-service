@@ -5,9 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * DTO for User data received from User Service
- */
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

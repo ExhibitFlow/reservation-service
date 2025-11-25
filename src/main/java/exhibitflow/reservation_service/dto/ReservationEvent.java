@@ -7,9 +7,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
-/**
- * Base event for all reservation-related Kafka events.
- */
+
 @Data
 @Builder
 @NoArgsConstructor

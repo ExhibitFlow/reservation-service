@@ -22,9 +22,7 @@ import org.springframework.util.backoff.FixedBackOff;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * Kafka configuration for creating topics, managing Kafka settings, and implementing retry/DLQ strategy.
- */
+
 @Configuration
 @Slf4j
 public class KafkaConfig {

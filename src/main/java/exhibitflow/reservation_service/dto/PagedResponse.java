@@ -7,9 +7,7 @@ import lombok.NoArgsConstructor;
 
 import java.util.List;
 
-/**
- * Paginated response wrapper
- */
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

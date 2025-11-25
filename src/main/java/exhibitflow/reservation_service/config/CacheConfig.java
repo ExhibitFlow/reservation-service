@@ -9,11 +9,7 @@ import org.springframework.context.annotation.Configuration;
 
 import java.util.Arrays;
 
-/**
- * Cache configuration for frequently accessed data
- * Uses in-memory caching for user data only
- * Stall availability and reservation status are not cached to ensure real-time accuracy
- */
+
 @Configuration
 @EnableCaching
 public class CacheConfig {

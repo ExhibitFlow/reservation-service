@@ -15,10 +15,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-/**
- * Service for venue map operations
- * Fetches stall data from Stall service and combines with reservation status
- */
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -138,12 +135,7 @@ public class VenueMapService {
                 .build();
     }
 
-    /**
-     * Calculate map bounds from stalls
-     * Note: Since location is now a string (e.g., "Hall A - North Wing, Row 1"),
-     * we cannot calculate geographic bounds. This would need to be updated if
-     * boundary coordinates are used instead.
-     */
+
     private VenueMapResponse.MapBounds calculateMapBounds(List<StallDto> stalls) {
         if (stalls.isEmpty()) {
             return null;

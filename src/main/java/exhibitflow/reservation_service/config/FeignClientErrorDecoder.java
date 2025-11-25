@@ -7,10 +7,7 @@ import feign.codec.ErrorDecoder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * Custom error decoder for Feign client errors
- * Translates HTTP errors from external services into domain exceptions
- */
+
 public class FeignClientErrorDecoder implements ErrorDecoder {
 
     private static final Logger logger = LoggerFactory.getLogger(FeignClientErrorDecoder.class);

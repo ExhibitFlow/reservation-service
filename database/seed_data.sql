@@ -1,5 +1,4 @@
 -- Seed data for reservation service
--- This script populates the database with example data for testing and development
 
 -- Sample reservations with various statuses
 INSERT INTO reservations (user_id, stall_id, created_at, status, payment_expires_at, payment_completed_at, qr_code_base64) VALUES
