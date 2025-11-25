@@ -34,12 +34,8 @@ public class MDCFilter extends OncePerRequestFilter {
             
             // Extract user ID from header if present
             String userIdHeader = request.getHeader(HeaderConstants.USER_ID);
-            if (userIdHeader != null) {
-                try {
-                    MDCUtil.setUserId(Long.parseLong(userIdHeader));
-                } catch (NumberFormatException e) {
-                    // Invalid user ID format, skip
-                }
+            if (userIdHeader != null && !userIdHeader.trim().isEmpty()) {
+                MDCUtil.setUserId(userIdHeader);
             }
             
             // Add request ID to response header

@@ -43,7 +43,7 @@ public class QRCodeController {
     )
     public ResponseEntity<Map<String, String>> regenerateQRCode(
             @PathVariable Long reservationId,
-            @RequestHeader(HeaderConstants.USER_ID) Long userId) {
+            @RequestHeader(HeaderConstants.USER_ID) String userId) {
         
         // Get reservation details
         ReservationResponse reservation = reservationService.getUserReservations(userId)

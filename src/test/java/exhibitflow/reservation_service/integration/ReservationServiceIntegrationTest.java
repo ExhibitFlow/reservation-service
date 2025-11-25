@@ -23,6 +23,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 /**
@@ -60,7 +61,7 @@ class ReservationServiceIntegrationTest {
 
         // Setup test data
         testUser = UserDto.builder()
-                .id(1L)
+                .id("60ab5b68-6f41-49b7-a461-f2cf89e6c099")
                 .email("test@example.com")
                 .name("Test User")
                 .businessName("Test Business")
@@ -81,11 +82,11 @@ class ReservationServiceIntegrationTest {
     @Test
     void testCreateReservation_Success() {
         // Mock User Service response
-        when(userServiceClient.getUserById(1L)).thenReturn(testUser);
+        when(userServiceClient.getUserById("60ab5b68-6f41-49b7-a461-f2cf89e6c099")).thenReturn(testUser);
 
         // Mock Stall Service responses
         when(stallServiceClient.getStallById(1L)).thenReturn(testStall);
-        when(stallServiceClient.holdStall(1L)).thenReturn(
+        when(stallServiceClient.reserveStall(1L)).thenReturn(
                 StallDto.builder()
                         .id(1L)
                         .code("A-001")
@@ -97,12 +98,12 @@ class ReservationServiceIntegrationTest {
         );
 
         // Create reservation
-        ReservationResponse response = reservationService.createReservation(testRequest, 1L);
+        ReservationResponse response = reservationService.createReservation(testRequest, "60ab5b68-6f41-49b7-a461-f2cf89e6c099");
 
         // Verify response
         assertThat(response).isNotNull();
         assertThat(response.getId()).isNotNull();
-        assertThat(response.getUserId()).isEqualTo(1L);
+        assertThat(response.getUserId()).isEqualTo("60ab5b68-6f41-49b7-a461-f2cf89e6c099");
         assertThat(response.getUserName()).isEqualTo("Test User");
         assertThat(response.getStallId()).isEqualTo(1L);
         assertThat(response.getStallCode()).isEqualTo("A-001");
@@ -111,7 +112,7 @@ class ReservationServiceIntegrationTest {
         assertThat(response.getQrCodeBase64()).isNull(); // QR code not generated until payment
 
         // Verify external service calls
-        verify(userServiceClient, times(1)).getUserById(1L);
+        verify(userServiceClient, times(1)).getUserById("60ab5b68-6f41-49b7-a461-f2cf89e6c099");
         verify(stallServiceClient, times(1)).getStallById(1L);
         verify(stallServiceClient, times(1)).holdStall(1L);
 
@@ -124,10 +125,10 @@ class ReservationServiceIntegrationTest {
     @Test
     void testCreateReservation_UserNotFound() {
         // Mock User Service to return null
-        when(userServiceClient.getUserById(999L)).thenReturn(null);
+        when(userServiceClient.getUserById("999")).thenReturn(null);
 
         // Attempt to create reservation
-        assertThatThrownBy(() -> reservationService.createReservation(testRequest, 999L))
+        assertThatThrownBy(() -> reservationService.createReservation(testRequest, "999"))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("User not found");
 
@@ -139,7 +140,7 @@ class ReservationServiceIntegrationTest {
     @Test
     void testCreateReservation_StallNotFound() {
         // Mock User Service response
-        when(userServiceClient.getUserById(1L)).thenReturn(testUser);
+        when(userServiceClient.getUserById("60ab5b68-6f41-49b7-a461-f2cf89e6c099")).thenReturn(testUser);
 
         // Mock Stall Service to return null
         when(stallServiceClient.getStallById(999L)).thenReturn(null);
@@ -147,7 +148,7 @@ class ReservationServiceIntegrationTest {
         testRequest.setStallId(999L);
 
         // Attempt to create reservation
-        assertThatThrownBy(() -> reservationService.createReservation(testRequest, 1L))
+        assertThatThrownBy(() -> reservationService.createReservation(testRequest, "60ab5b68-6f41-49b7-a461-f2cf89e6c099"))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Stall not found");
 
@@ -158,7 +159,7 @@ class ReservationServiceIntegrationTest {
     @Test
     void testCreateReservation_StallAlreadyReserved() {
         // Mock User Service response
-        when(userServiceClient.getUserById(1L)).thenReturn(testUser);
+        when(userServiceClient.getUserById("60ab5b68-6f41-49b7-a461-f2cf89e6c099")).thenReturn(testUser);
 
         // Mock Stall Service to return already reserved stall
         StallDto reservedStall = StallDto.builder()
@@ -171,7 +172,7 @@ class ReservationServiceIntegrationTest {
         when(stallServiceClient.getStallById(1L)).thenReturn(reservedStall);
 
         // Attempt to create reservation
-        assertThatThrownBy(() -> reservationService.createReservation(testRequest, 1L))
+        assertThatThrownBy(() -> reservationService.createReservation(testRequest, "60ab5b68-6f41-49b7-a461-f2cf89e6c099"))
                 .isInstanceOf(StallNotAvailableException.class)
                 .hasMessageContaining("already reserved");
 
@@ -182,12 +183,12 @@ class ReservationServiceIntegrationTest {
     @Test
     void testCreateReservation_MaxReservationsExceeded() {
         // Mock User Service response
-        when(userServiceClient.getUserById(1L)).thenReturn(testUser);
+        when(userServiceClient.getUserById("60ab5b68-6f41-49b7-a461-f2cf89e6c099")).thenReturn(testUser);
 
         // Create 3 existing confirmed reservations for the user
         for (int i = 1; i <= 3; i++) {
             Reservation existing = Reservation.builder()
-                    .userId(1L)
+                    .userId("60ab5b68-6f41-49b7-a461-f2cf89e6c099")
                     .stallId((long) i)
                     .status(Reservation.ReservationStatus.CONFIRMED)
                     .paymentCompletedAt(LocalDateTime.now())
@@ -208,7 +209,7 @@ class ReservationServiceIntegrationTest {
         testRequest.setStallId(4L);
 
         // Attempt to create 4th reservation
-        assertThatThrownBy(() -> reservationService.createReservation(testRequest, 1L))
+        assertThatThrownBy(() -> reservationService.createReservation(testRequest, "60ab5b68-6f41-49b7-a461-f2cf89e6c099"))
                 .isInstanceOf(ReservationLimitExceededException.class)
                 .hasMessageContaining("Maximum reservation limit");
 
@@ -219,7 +220,7 @@ class ReservationServiceIntegrationTest {
     @Test
     void testCompletePayment_Success() {
         // Mock User Service response
-        when(userServiceClient.getUserById(1L)).thenReturn(testUser);
+        when(userServiceClient.getUserById("60ab5b68-6f41-49b7-a461-f2cf89e6c099")).thenReturn(testUser);
 
         // Mock Stall Service responses
         when(stallServiceClient.getStallById(1L)).thenReturn(testStall);
@@ -235,13 +236,13 @@ class ReservationServiceIntegrationTest {
         );
 
         // Create reservation
-        ReservationResponse created = reservationService.createReservation(testRequest, 1L);
+        ReservationResponse created = reservationService.createReservation(testRequest, "60ab5b68-6f41-49b7-a461-f2cf89e6c099");
         
         // Clear mock interactions
         clearInvocations(userServiceClient, stallServiceClient);
         
         // Mock services for payment completion
-        when(userServiceClient.getUserById(1L)).thenReturn(testUser);
+        when(userServiceClient.getUserById("60ab5b68-6f41-49b7-a461-f2cf89e6c099")).thenReturn(testUser);
         when(stallServiceClient.getStallById(1L)).thenReturn(testStall);
         when(stallServiceClient.reserveStall(1L)).thenReturn(
                 StallDto.builder()
@@ -255,7 +256,7 @@ class ReservationServiceIntegrationTest {
         );
 
         // Complete payment
-        ReservationResponse completed = reservationService.completePayment(created.getId(), 1L);
+        ReservationResponse completed = reservationService.completePayment(created.getId(), "60ab5b68-6f41-49b7-a461-f2cf89e6c099");
 
         // Verify response
         assertThat(completed).isNotNull();
@@ -273,7 +274,7 @@ class ReservationServiceIntegrationTest {
     @Test
     void testCompletePayment_Unauthorized() {
         // Mock User Service response
-        when(userServiceClient.getUserById(1L)).thenReturn(testUser);
+        when(userServiceClient.getUserById("60ab5b68-6f41-49b7-a461-f2cf89e6c099")).thenReturn(testUser);
 
         // Mock Stall Service responses
         when(stallServiceClient.getStallById(1L)).thenReturn(testStall);
@@ -289,10 +290,10 @@ class ReservationServiceIntegrationTest {
         );
 
         // Create reservation
-        ReservationResponse created = reservationService.createReservation(testRequest, 1L);
+        ReservationResponse created = reservationService.createReservation(testRequest, "60ab5b68-6f41-49b7-a461-f2cf89e6c099");
 
         // Attempt to complete payment with different user
-        assertThatThrownBy(() -> reservationService.completePayment(created.getId(), 999L))
+        assertThatThrownBy(() -> reservationService.completePayment(created.getId(), "999"))
                 .isInstanceOf(UnauthorizedException.class)
                 .hasMessageContaining("Not authorized");
     }
@@ -300,11 +301,11 @@ class ReservationServiceIntegrationTest {
     @Test
     void testCompletePayment_AlreadyConfirmed() {
         // Mock User Service response
-        when(userServiceClient.getUserById(1L)).thenReturn(testUser);
+        when(userServiceClient.getUserById("60ab5b68-6f41-49b7-a461-f2cf89e6c099")).thenReturn(testUser);
 
         // Create already confirmed reservation
         Reservation reservation = Reservation.builder()
-                .userId(1L)
+                .userId("60ab5b68-6f41-49b7-a461-f2cf89e6c099")
                 .stallId(1L)
                 .status(Reservation.ReservationStatus.CONFIRMED)
                 .paymentCompletedAt(LocalDateTime.now())
@@ -314,7 +315,7 @@ class ReservationServiceIntegrationTest {
 
         // Attempt to complete payment again
         Long reservationId = reservation.getId();
-        assertThatThrownBy(() -> reservationService.completePayment(reservationId, 1L))
+        assertThatThrownBy(() -> reservationService.completePayment(reservationId, "60ab5b68-6f41-49b7-a461-f2cf89e6c099"))
                 .isInstanceOf(InvalidOperationException.class)
                 .hasMessageContaining("not pending payment");
     }
@@ -322,18 +323,18 @@ class ReservationServiceIntegrationTest {
     @Test
     void testGetUserReservations_Success() {
         // Mock User Service response
-        when(userServiceClient.getUserById(1L)).thenReturn(testUser);
+        when(userServiceClient.getUserById("60ab5b68-6f41-49b7-a461-f2cf89e6c099")).thenReturn(testUser);
 
         // Create multiple reservations for user
         Reservation res1 = Reservation.builder()
-                .userId(1L)
+                .userId("60ab5b68-6f41-49b7-a461-f2cf89e6c099")
                 .stallId(1L)
                 .status(Reservation.ReservationStatus.CONFIRMED)
                 .paymentCompletedAt(LocalDateTime.now())
                 .build();
         
         Reservation res2 = Reservation.builder()
-                .userId(1L)
+                .userId("60ab5b68-6f41-49b7-a461-f2cf89e6c099")
                 .stallId(2L)
                 .status(Reservation.ReservationStatus.PENDING_PAYMENT)
                 .paymentExpiresAt(LocalDateTime.now().plusMinutes(5))
@@ -363,7 +364,7 @@ class ReservationServiceIntegrationTest {
         when(stallServiceClient.getStallById(2L)).thenReturn(stall2);
 
         // Get user reservations
-        List<ReservationResponse> reservations = reservationService.getUserReservations(1L);
+        List<ReservationResponse> reservations = reservationService.getUserReservations("60ab5b68-6f41-49b7-a461-f2cf89e6c099");
 
         // Verify
         assertThat(reservations).hasSize(2);
@@ -371,7 +372,7 @@ class ReservationServiceIntegrationTest {
                 .containsExactlyInAnyOrder("A-001", "A-002");
         
         // Verify service calls
-        verify(userServiceClient, atLeastOnce()).getUserById(1L);
+        verify(userServiceClient, atLeastOnce()).getUserById("60ab5b68-6f41-49b7-a461-f2cf89e6c099");
         verify(stallServiceClient, times(1)).getStallById(1L);
         verify(stallServiceClient, times(1)).getStallById(2L);
     }
@@ -379,7 +380,7 @@ class ReservationServiceIntegrationTest {
     @Test
     void testCancelReservation_Success() {
         // Mock User Service response
-        when(userServiceClient.getUserById(1L)).thenReturn(testUser);
+        when(userServiceClient.getUserById("60ab5b68-6f41-49b7-a461-f2cf89e6c099")).thenReturn(testUser);
 
         // Mock Stall Service responses
         when(stallServiceClient.getStallById(1L)).thenReturn(testStall);
@@ -395,13 +396,13 @@ class ReservationServiceIntegrationTest {
         );
 
         // Create reservation
-        ReservationResponse created = reservationService.createReservation(testRequest, 1L);
+        ReservationResponse created = reservationService.createReservation(testRequest, "60ab5b68-6f41-49b7-a461-f2cf89e6c099");
         
         // Mock release stall
         when(stallServiceClient.releaseStall(1L)).thenReturn(testStall);
 
         // Cancel reservation
-        reservationService.cancelReservation(created.getId(), 1L);
+        reservationService.cancelReservation(created.getId(), "60ab5b68-6f41-49b7-a461-f2cf89e6c099");
 
         // Verify database
         Reservation reservation = reservationRepository.findById(created.getId()).orElseThrow();
@@ -415,7 +416,7 @@ class ReservationServiceIntegrationTest {
     void testCancelReservation_Unauthorized() {
         // Create reservation for user 1
         Reservation reservation = Reservation.builder()
-                .userId(1L)
+                .userId("60ab5b68-6f41-49b7-a461-f2cf89e6c099")
                 .stallId(1L)
                 .status(Reservation.ReservationStatus.CONFIRMED)
                 .paymentCompletedAt(LocalDateTime.now())
@@ -424,7 +425,7 @@ class ReservationServiceIntegrationTest {
 
         // Attempt to cancel with different user
         Long reservationId = reservation.getId();
-        assertThatThrownBy(() -> reservationService.cancelReservation(reservationId, 999L))
+        assertThatThrownBy(() -> reservationService.cancelReservation(reservationId, "999"))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Unauthorized");
 
@@ -436,21 +437,21 @@ class ReservationServiceIntegrationTest {
     void testGetAllReservations_Success() {
         // Mock User Service responses for different users
         UserDto user1 = UserDto.builder()
-                .id(1L)
+                .id("60ab5b68-6f41-49b7-a461-f2cf89e6c099")
                 .email("user1@example.com")
                 .name("User One")
                 .businessName("Business One")
                 .build();
         
         UserDto user2 = UserDto.builder()
-                .id(2L)
+                .id("70ab5b68-6f41-49b7-a461-f2cf89e6c099")
                 .email("user2@example.com")
                 .name("User Two")
                 .businessName("Business Two")
                 .build();
 
-        when(userServiceClient.getUserById(1L)).thenReturn(user1);
-        when(userServiceClient.getUserById(2L)).thenReturn(user2);
+        when(userServiceClient.getUserById("60ab5b68-6f41-49b7-a461-f2cf89e6c099")).thenReturn(user1);
+        when(userServiceClient.getUserById("70ab5b68-6f41-49b7-a461-f2cf89e6c099")).thenReturn(user2);
 
         // Mock Stall Service responses
         StallDto stall1 = StallDto.builder()
@@ -474,14 +475,14 @@ class ReservationServiceIntegrationTest {
 
         // Create reservations for different users
         Reservation res1 = Reservation.builder()
-                .userId(1L)
+                .userId("60ab5b68-6f41-49b7-a461-f2cf89e6c099")
                 .stallId(1L)
                 .status(Reservation.ReservationStatus.CONFIRMED)
                 .paymentCompletedAt(LocalDateTime.now())
                 .build();
         
         Reservation res2 = Reservation.builder()
-                .userId(2L)
+                .userId("70ab5b68-6f41-49b7-a461-f2cf89e6c099")
                 .stallId(2L)
                 .status(Reservation.ReservationStatus.PENDING_PAYMENT)
                 .paymentExpiresAt(LocalDateTime.now().plusMinutes(5))
@@ -504,14 +505,14 @@ class ReservationServiceIntegrationTest {
     @Test
     void testPaymentExpiration_AutoExpire() {
         // Mock User Service response
-        when(userServiceClient.getUserById(1L)).thenReturn(testUser);
+        when(userServiceClient.getUserById("60ab5b68-6f41-49b7-a461-f2cf89e6c099")).thenReturn(testUser);
 
         // Mock Stall Service responses
         when(stallServiceClient.getStallById(1L)).thenReturn(testStall);
         
         // Create expired reservation manually
         Reservation expiredReservation = Reservation.builder()
-                .userId(1L)
+                .userId("60ab5b68-6f41-49b7-a461-f2cf89e6c099")
                 .stallId(1L)
                 .status(Reservation.ReservationStatus.PENDING_PAYMENT)
                 .paymentExpiresAt(LocalDateTime.now().minusMinutes(1)) // Already expired
@@ -523,7 +524,7 @@ class ReservationServiceIntegrationTest {
 
         // Attempt to complete payment after expiration
         Long reservationId = expiredReservation.getId();
-        assertThatThrownBy(() -> reservationService.completePayment(reservationId, 1L))
+        assertThatThrownBy(() -> reservationService.completePayment(reservationId, "60ab5b68-6f41-49b7-a461-f2cf89e6c099"))
                 .isInstanceOf(PaymentExpiredException.class)
                 .hasMessageContaining("Payment window has expired");
 
