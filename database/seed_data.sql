@@ -1,0 +1,42 @@
+-- Seed data for reservation service
+-- This script populates the database with example data for testing and development
+
+-- Sample reservations with various statuses
+INSERT INTO reservations (user_id, stall_id, created_at, status, payment_expires_at, payment_completed_at, qr_code_base64) VALUES
+-- Confirmed reservations with completed payments
+('user-123-abc', 1, CURRENT_TIMESTAMP - INTERVAL '5 days', 'CONFIRMED', NULL, CURRENT_TIMESTAMP - INTERVAL '5 days', 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='),
+('user-456-def', 3, CURRENT_TIMESTAMP - INTERVAL '4 days', 'CONFIRMED', NULL, CURRENT_TIMESTAMP - INTERVAL '4 days', 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='),
+('user-789-ghi', 5, CURRENT_TIMESTAMP - INTERVAL '3 days', 'CONFIRMED', NULL, CURRENT_TIMESTAMP - INTERVAL '3 days', 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='),
+('user-234-jkl', 7, CURRENT_TIMESTAMP - INTERVAL '2 days', 'CONFIRMED', NULL, CURRENT_TIMESTAMP - INTERVAL '2 days', 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='),
+('user-567-mno', 9, CURRENT_TIMESTAMP - INTERVAL '1 day', 'CONFIRMED', NULL, CURRENT_TIMESTAMP - INTERVAL '1 day', 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='),
+
+-- Pending payment reservations
+('user-890-pqr', 2, CURRENT_TIMESTAMP - INTERVAL '30 minutes', 'PENDING_PAYMENT', CURRENT_TIMESTAMP + INTERVAL '15 minutes', NULL, NULL),
+('user-345-stu', 4, CURRENT_TIMESTAMP - INTERVAL '20 minutes', 'PENDING_PAYMENT', CURRENT_TIMESTAMP + INTERVAL '25 minutes', NULL, NULL),
+('user-678-vwx', 6, CURRENT_TIMESTAMP - INTERVAL '10 minutes', 'PENDING_PAYMENT', CURRENT_TIMESTAMP + INTERVAL '35 minutes', NULL, NULL),
+
+-- Cancelled reservations
+('user-901-yza', 8, CURRENT_TIMESTAMP - INTERVAL '7 days', 'CANCELLED', NULL, NULL, NULL),
+('user-234-bcd', 10, CURRENT_TIMESTAMP - INTERVAL '6 days', 'CANCELLED', NULL, NULL, NULL),
+
+-- Expired reservations (payment not completed in time)
+('user-567-efg', 11, CURRENT_TIMESTAMP - INTERVAL '2 hours', 'EXPIRED', CURRENT_TIMESTAMP - INTERVAL '1 hour', NULL, NULL),
+('user-890-hij', 12, CURRENT_TIMESTAMP - INTERVAL '3 hours', 'EXPIRED', CURRENT_TIMESTAMP - INTERVAL '2 hours', NULL, NULL),
+
+-- Additional confirmed reservations for different stalls
+('user-123-klm', 13, CURRENT_TIMESTAMP - INTERVAL '8 days', 'CONFIRMED', NULL, CURRENT_TIMESTAMP - INTERVAL '8 days', 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='),
+('user-456-nop', 14, CURRENT_TIMESTAMP - INTERVAL '10 days', 'CONFIRMED', NULL, CURRENT_TIMESTAMP - INTERVAL '10 days', 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='),
+('user-789-qrs', 15, CURRENT_TIMESTAMP - INTERVAL '12 days', 'CONFIRMED', NULL, CURRENT_TIMESTAMP - INTERVAL '12 days', 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==');
+
+-- Display seeded data summary
+SELECT 
+    status,
+    COUNT(*) as count,
+    MIN(created_at) as earliest_reservation,
+    MAX(created_at) as latest_reservation
+FROM reservations
+GROUP BY status
+ORDER BY status;
+
+-- Total count
+SELECT COUNT(*) as total_reservations FROM reservations;
